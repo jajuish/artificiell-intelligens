@@ -1,3 +1,92 @@
+# source("E:/Studies/Artificial_Intelligence/astarDM/DeliveryMan/R/DM.R")
+# runDeliveryMan(carReady = basicDM)
+#' myDM
+#'
+#' My own attempt at making a simple algorithm.
+#' 
+#' @param roads See help documentation for the runDeliveryMan function
+#' @param cars See help documentation for the runDeliveryMan function
+#' @param packages See help documentation for the runDeliveryMan function
+#' @return See help documentation for the runDeliveryMan function
+#' @export
+myDM=function(roads,car,packages) {
+  
+  sum=0
+  # The package # which is closest
+  min=1
+  distance = 1:5
+  
+  for(i in 1:5){
+    t_x = packages[i,1]
+    t_y = packages[i,2]
+    sum = abs(t_x-car$x)
+    sum = sum + abs(t_y-car$y)
+    distance[i] = sum
+    # Check on each consecutive distance
+    if(i>1){
+      # if the new distance is less than previously recorded minimum
+      if(distance[i]<distance[min])
+        min = i
+    }
+  }
+
+  cat("Closest package is at coordinates: [", 
+      packages[min,1], ",", packages[min,2],"]\n")
+  cat("\nDistance:\n")
+  print(distance)
+
+  return (manualDM(roads,car,packages))
+}
+
+#' A lazy DM that simply goes to the closest pickup
+#' 
+#' @param roads See help documentation for the runDeliveryMan function
+#' @param cars See help documentation for the runDeliveryMan function
+#' @param packages See help documentation for the runDeliveryMan function
+#' @return See help documentation for the runDeliveryMan function
+#' @export
+closeDM=function(roads,car,packages) {
+  
+  # Needed to differentiate between pick-up and drop-off
+  offset = 0
+  # The next destination. Contains the row # in packages[]
+  toGo=0
+  # needs to be maximum distance 
+  old_distance = 10*10
+  
+  # If not holding any package
+  if (car$load==0) {
+    # Find closest undelivered package  
+    for(i in 1:5){
+      # If selected package is undelivered
+      if(packages[i,5]==0){
+        t_x = packages[i,1]
+        t_y = packages[i,2]
+        new_distance = abs(t_x-car$x) + abs(t_y-car$y)
+        
+        if(new_distance < old_distance){
+          toGo = i
+          old_distance = new_distance
+        }
+      }
+    }
+  }else {
+    # Set the drop-off point
+    toGo=car$load
+    offset=2
+  }
+  
+  if (car$x<packages[toGo,1+offset]) {nextMove=6}
+  else if (car$x>packages[toGo,1+offset]) {nextMove=4}
+  else if (car$y<packages[toGo,2+offset]) {nextMove=8}
+  else if (car$y>packages[toGo,2+offset]) {nextMove=2}
+  else {nextMove=5}
+  car$nextMove=nextMove
+  car$mem=list()
+  return (car)
+}
+
+
 #' dumbDM
 #'
 #' This control function just moves randomly, until all packages are picked up and delivered by accident!
@@ -41,6 +130,7 @@ basicDM=function(roads,car,packages) {
   car$mem=list()
   return (car)
 }
+
 #' manualDM
 #'
 #' If you have the urge to play the game manually (giving moves 2, 4, 5, 6, or 8 using the keyboard) you
@@ -151,12 +241,44 @@ testDM=function(myFunction,verbose=0,returnVec=FALSE,n=500,seed=21,timeLimit=250
 #' @export
 runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,
                             doPlot=T,pause=0.1,del=5,verbose=T) {
+  # Creates two matrices, 
+  # roads$hroads for horizontal roads (10x9 matrix),
+  # roads$vroads for vertical roads (9x10 matrix)
   roads=makeRoadMatrices(dim)
   car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list())
+  
+  #' Creates the package matrix, detailing the x & y coordinates of pickup and 
+  #' drop-points. Matrix has structure:
+  #'      p-x p-y d-x d-y status
+  #' #1   1   2   3   4   2
+  #' #2   7   3   1   4   0
+  #' #3   5   5   4   1   1
+  #' ...
+  #' p-x = pick-up x-coordinate
+  #' p-y = pick-up y-coordinate
+  #' d-x = drop-off x-coordinate
+  #' d-y = drop-off y-coordinate
+  #' status = status of delivery (2=delivered, 1=picked up, 0=waiting)
+  #' #1-3 Specifies different deliveries, 3 different ones in this example.
+  #' 
+  #' sample() creates a vector of size 5*del with values ranging from 1:dim
+  #' matrix() transforms the vector from sample() into a matrix with 5 columns
+  #' 
+  #' The functions used to generate the matrix are basic and as such you may 
+  #' end up with overlapping pickup and drop-off points.
   packages=matrix(sample(1:dim,replace=T,5*del),ncol=5)
+  # Set all values in 5th column to 0
   packages[,5]=rep(0,del)
+  # Debug printouts
+  cat("\nPackages:\n")
+  print(packages)
+  
   for (i in 1:turns) {
     roads=updateRoads(roads$hroads,roads$vroads)
+    
+    # Debug printouts
+    #cat("\nRoads, t=",i,"\n")
+    #print(roads)
     if (doPlot) {
       makeDotGrid(dim,i)
       plotRoads(roads$hroads,roads$vroads)
@@ -165,11 +287,15 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,
     }
     if (car$wait==0) {
       if (car$load==0) {
+        # packageOn returns the row in package matrix of an available package, 
+        # otherwise returns 0.
         on=packageOn(car$x,car$y,packages)
-        if (on!=0) {
+        # If package is available
+        if (on) {
           packages[on,5]=1
           car$load=on
         }
+        # if deliveryMan is at the drop-off point for current load
       } else if (packages[car$load,3]==car$x && packages[car$load,4]==car$y) {
         packages[car$load,5]=2
         car$load=0
@@ -189,13 +315,17 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,
   cat("\nYou failed to complete the task. Try again.")
   return (NA)
 }
-#' @keywords internal
+#' Identifies if delivery man is at a pickup point and package is available.
+#'  @keywords internal
 packageOn<-function(x,y,packages){
+  # which() returns the indexes of which match the provided condition.
   notpickedup=which(packages[,5]==0)
   onX=which(packages[,1]==x)
   onY=which(packages[,2]==y)
+  # intersect() compares two vectors for matching values
   available=intersect(notpickedup,intersect(onX,onY))
   if (length(available)!=0) {
+    # If multiple packages are available, return the first one
     return (available[1])
   }
   return (0)
@@ -271,10 +401,18 @@ plotRoads<- function (hroads,vroads) {
     }
   }
 }
+#' Updates traffic conditions of horizontal and vertical roads.
+#' Each road has a:
+#'   5% chance of increasing traffic condition by 1.
+#'   5% chance of decreasing traffic condition by 1.
+#'   90% chance of no change in traffic condition.
+#' Roads cannot go below a traffic value of 1.
 #' @keywords internal
 updateRoads<-function(hroads,vroads) {
+  # Generates a vector of values of identical size to hroads and
+  # fills them with random float values of range 1-0. 
   r1=runif(length(hroads))
-  r2=runif(length(hroads))
+  r2=runif(length(vroads))
   for (i in 1:length(hroads)) {
     h=hroads[i]
     if (h==1) {
