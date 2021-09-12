@@ -2,29 +2,33 @@ astarDM <- function (roads, car, packages) {
   if (car$load == 0) {
     # if car load is 0 and there is no point to reach yet, set a package to pick up
     if (is.null(car$mem$pointToReach)) {
-      nextPackageTopick = selectPackage(list(x = car$x, y = car$y), packages)
+      nextPackageTopick = selectPackage(c(car$x, car$y), packages)
       # print(nextPackageTopick)
-      car$mem = list(pointToReach = list(x = packages[nextPackageTopick, 1], y = packages[nextPackageTopick, 2]))
+      car$mem = list(pointToReach = c(packages[nextPackageTopick, 1], packages[nextPackageTopick, 2]))
     }
     destination = car$mem$pointToReach
   } else {
     # astar search for current point till destination
-    destination = list(x = packages[car$load, 3], y = packages[car$load, 4])
+    destination = c(packages[car$load, 3], packages[car$load, 4])
     car$mem = NULL
   }
-  # print(paste("current dest==",destination))
+  if (car$x == destination[1] & car$y == destination[2]) {
+    car$nextMove = 5
+    return (car)
+  }
   nm = astarSearch(roads, car, destination)
-  # print("selected next move")
-  # print(nm)
   car$nextMove = nm
   return(car)
 }
 
 selectPackage <- function (currentPos, packages) {
   availablePackages = which(packages[,5] == 0)
+  if (length(availablePackages) == 1) {
+    return (availablePackages[1])
+  }
   packageDistances = c()
   for (packageIndex in availablePackages) {
-    packagePos = list(x = packages[packageIndex, 1], y = packages[packageIndex, 2])
+    packagePos = c(packages[packageIndex, 1], packages[packageIndex, 2])
     dist = distanceBetweenCoordinates(currentPos, packagePos)
     packageDistances = append(packageDistances, c(dist))
   }
@@ -33,7 +37,7 @@ selectPackage <- function (currentPos, packages) {
 }
 
 distanceBetweenCoordinates <- function (src, dest) {
-  return (sqrt(( (src$x - dest$x)^2 + (src$y - dest$y)^2 )))
+  return (sqrt(( (src[1] - dest[1])^2 + (src[2] - dest[2])^2 )))
 }
 
 astarSearch <- function (roads, car, destination) {
@@ -41,7 +45,7 @@ astarSearch <- function (roads, car, destination) {
   frontier = list(list(
     x = car$x,
     y = car$y,
-    cost = 0,
+    g = 0,
     h = 0,
     f = 0,
     path = c()
@@ -60,51 +64,51 @@ astarSearch <- function (roads, car, destination) {
     frontier = frontier[-expandedIndex] # remove the chosen one from the frontier
     df = as.data.frame(do.call(rbind, lapply(frontier, unlist)))
 
-    if (expanded$x == destination$x & expanded$y == destination$y) {
+    if (expanded$x == destination[1] & expanded$y == destination[2]) {
       reached = 1
       return (expanded$path[1])
     }
 
     if (expanded$y-1 > 0) {
       neighbourNode = list(x = expanded$x, y = expanded$y-1)
-      cost = expanded$cost + roads$vroads[expanded$x, expanded$y-1]
-      frontier = addNeighbourToFrontier(expanded, cost, neighbourNode, destination, frontier, df, 2)
+      g = expanded$g + roads$vroads[expanded$x, expanded$y-1]
+      frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, df, 2)
     }
     if (expanded$y+1 <= 10) {
       neighbourNode = list(x = expanded$x, y = expanded$y+1)
-      cost = expanded$cost + roads$vroads[expanded$x, expanded$y]
-      frontier = addNeighbourToFrontier(expanded, cost, neighbourNode, destination, frontier, df, 8)
+      g = expanded$g + roads$vroads[expanded$x, expanded$y]
+      frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, df, 8)
     }
     if (expanded$x-1 > 0) {
       neighbourNode = list(x = expanded$x-1, y = expanded$y)
-      cost = expanded$cost + roads$hroads[expanded$x-1, expanded$y]
-      frontier = addNeighbourToFrontier(expanded, cost, neighbourNode, destination, frontier, df, 4)
+      g = expanded$g + roads$hroads[expanded$x-1, expanded$y]
+      frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, df, 4)
     }
     if (expanded$x+1 <= 10) {
       neighbourNode = list(x = expanded$x+1, y = expanded$y)
-      cost = expanded$cost + roads$hroads[expanded$x, expanded$y]
-      frontier = addNeighbourToFrontier(expanded, cost, neighbourNode, destination, frontier, df, 6)
+      g = expanded$g + roads$hroads[expanded$x, expanded$y]
+      frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, df, 6)
     }
     run = run+1
   }
 }
 
-addNeighbourToFrontier <- function (expanded, cost, neighbourNode, destination, frontier, df, directionNumber) {
-  h = distanceBetweenCoordinates(list(x = neighbourNode$x, y = neighbourNode$y), destination)
+addNeighbourToFrontier <- function (expanded, g, neighbourNode, destination, frontier, df, directionNumber) {
+  h = distanceBetweenCoordinates(c(neighbourNode$x,neighbourNode$y), destination)
   neighbourIndex = which(df$x == neighbourNode$x & df$y == neighbourNode$y)
   if (length(neighbourIndex) != 0) {
-    if (frontier[[neighbourIndex]]$cost >= cost) {
-      frontier[[neighbourIndex]]$cost = cost
-      frontier[[neighbourIndex]]$f = cost+h
+    if (frontier[[neighbourIndex]]$g >= g) {
+      frontier[[neighbourIndex]]$g = g
+      frontier[[neighbourIndex]]$f = g+h
       frontier[[neighbourIndex]]$path = append(expanded$path, c(directionNumber))
     }
   } else {
     frontier = append(frontier, list(list(
       x = neighbourNode$x,
       y = neighbourNode$y,
-      cost = cost,
+      g = g,
       h = h,
-      f = cost+h,
+      f = g+h,
       path = append(expanded$path, c(directionNumber))
     )))
   }
