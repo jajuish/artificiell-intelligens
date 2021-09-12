@@ -28,35 +28,37 @@ selectPackage <- function (currentPos, packages) {
   if (length(availablePackages) == 1) {
     return (availablePackages[1])
   }
-  packageDistances = c()
+  leastDistance = NULL
+  nextPackageIndex = NULL
   for (packageIndex in availablePackages) {
     packagePos = c(packages[packageIndex, 1], packages[packageIndex, 2])
     dist = distanceBetweenCoordinates(currentPos, packagePos)
-    packageDistances = append(packageDistances, c(dist))
+    if (dist < leastDistance || is.null(leastDistance)) {
+      nextPackageIndex = packageIndex
+      leastDistance = dist
+    }
   }
-  availablePackageIndex = which(packageDistances == min(packageDistances))[1]
-  return (availablePackages[availablePackageIndex])
+  return (nextPackageIndex)
 }
 
 distanceBetweenCoordinates <- function (src, dest) {
-  return (sqrt(( (src[1] - dest[1])^2 + (src[2] - dest[2])^2 )))
+  return (abs(src[1] - dest[1]) + abs(src[2] - dest[2]))
 }
 
 astarSearch <- function (roads, car, destination) {
+  h = distanceBetweenCoordinates(c(car$x, car$y), destination)
   frontier = list(list(
     x = car$x,
     y = car$y,
     g = 0,
-    h = 0,
-    f = 0,
+    h = h,
+    f = h,
     path = c()
   ))
+  visitedSet = list()
 
-  reached = 0
-  path = 0
 
-  run = 1
-  while (reached != 1) {
+  while (1) {
     # find the node in the frontier with the lowest score
     scores=sapply(frontier,function(item)item$f)
     # TODO: breaks ties arbitrarily as of now
@@ -64,33 +66,32 @@ astarSearch <- function (roads, car, destination) {
     expandedIndex = which.min(scores)
     expanded = frontier[[expandedIndex]]
     frontier = frontier[-expandedIndex] # remove the chosen one from the frontier
+    visitedSet = append(visitedSet, list(expanded))
 
     if (expanded$x == destination[1] & expanded$y == destination[2]) {
-      reached = 1
       return (expanded$path[1])
     }
 
-    if (expanded$y-1 > 0) {
+    if (expanded$y-1 > 0 & !setContains(c(expanded$x, expanded$y-1), visitedSet)) {
       neighbourNode = c(expanded$x, expanded$y-1)
       g = expanded$g + roads$vroads[expanded$x, expanded$y-1]
       frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, 2)
     }
-    if (expanded$y+1 <= 10) {
+    if (expanded$y+1 <= 10 & !setContains(c(expanded$x, expanded$y+1), visitedSet)) {
       neighbourNode = c(expanded$x, expanded$y+1)
       g = expanded$g + roads$vroads[expanded$x, expanded$y]
       frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, 8)
     }
-    if (expanded$x-1 > 0) {
+    if (expanded$x-1 > 0 & !setContains(c(expanded$x-1, expanded$y), visitedSet)) {
       neighbourNode = c(expanded$x-1, expanded$y)
       g = expanded$g + roads$hroads[expanded$x-1, expanded$y]
       frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, 4)
     }
-    if (expanded$x+1 <= 10) {
+    if (expanded$x+1 <= 10 & !setContains(c(expanded$x+1, expanded$y), visitedSet)) {
       neighbourNode = c(expanded$x+1, expanded$y)
       g = expanded$g + roads$hroads[expanded$x, expanded$y]
       frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, 6)
     }
-    run = run+1
   }
 }
 
@@ -117,4 +118,16 @@ addNeighbourToFrontier <- function (expanded, g, neighbourNode, destination, fro
   }
 
   return (frontier)
+}
+
+setContains = function(node, set) {
+  if (length(set) == 0) {
+    return (0)
+  }
+  for (i in 1:length(set)) {
+    if (all(node == c(set[[i]]$x, set[[i]]$y))) {
+      return (i)
+    }
+  }
+  return (0)
 }
