@@ -28,8 +28,7 @@ selectPackage <- function (currentPos, packages) {
     dist = distanceBetweenCoordinates(currentPos, packagePos)
     packageDistances = append(packageDistances, c(dist))
   }
-  # TODO: unsolved if there are 2 packages equally close. it will give 2 indices and this will fail
-  availablePackageIndex = which(packageDistances == min(packageDistances))
+  availablePackageIndex = which(packageDistances == min(packageDistances))[1]
   return (availablePackages[availablePackageIndex])
 }
 
@@ -94,7 +93,7 @@ addNeighbourToFrontier <- function (expanded, cost, neighbourNode, destination, 
   h = distanceBetweenCoordinates(list(x = neighbourNode$x, y = neighbourNode$y), destination)
   neighbourIndex = which(df$x == neighbourNode$x & df$y == neighbourNode$y)
   if (length(neighbourIndex) != 0) {
-    if (frontier[[neighbourIndex]]$cost > cost) {
+    if (frontier[[neighbourIndex]]$cost >= cost) {
       frontier[[neighbourIndex]]$cost = cost
       frontier[[neighbourIndex]]$f = cost+h
       frontier[[neighbourIndex]]$path = append(expanded$path, c(directionNumber))
