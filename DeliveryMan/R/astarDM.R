@@ -1,21 +1,36 @@
 astarDM <- function (roads, car, packages) {
   if (car$load == 0) {
     # if car load is 0 and there is no point to reach yet, set a package to pick up
-    # TODO: optimize this to pick up the nearest package
-    nextPackageTopick = which(packages[,5]==0)[1]
-    # print(nextPackageTopick)
-    car$mem = list(pointToReach = list(x = packages[nextPackageTopick, 1], y = packages[nextPackageTopick, 2]))
+    if (is.null(car$mem$pointToReach)) {
+      nextPackageTopick = selectPackage(list(x = car$x, y = car$y), packages)
+      # print(nextPackageTopick)
+      car$mem = list(pointToReach = list(x = packages[nextPackageTopick, 1], y = packages[nextPackageTopick, 2]))
+    }
     destination = car$mem$pointToReach
   } else {
     # astar search for current point till destination
     destination = list(x = packages[car$load, 3], y = packages[car$load, 4])
+    car$mem = NULL
   }
-  print(paste("current dest==",destination))
+  # print(paste("current dest==",destination))
   nm = astarSearch(roads, car, destination)
-  print("selected next move")
-  print(nm)
+  # print("selected next move")
+  # print(nm)
   car$nextMove = nm
   return(car)
+}
+
+selectPackage <- function (currentPos, packages) {
+  availablePackages = which(packages[,5] == 0)
+  packageDistances = c()
+  for (packageIndex in availablePackages) {
+    packagePos = list(x = packages[packageIndex, 1], y = packages[packageIndex, 2])
+    dist = distanceBetweenCoordinates(currentPos, packagePos)
+    packageDistances = append(packageDistances, c(dist))
+  }
+  # TODO: unsolved if there are 2 packages equally close. it will give 2 indices and this will fail
+  availablePackageIndex = which(packageDistances == min(packageDistances))
+  return (availablePackages[availablePackageIndex])
 }
 
 distanceBetweenCoordinates <- function (src, dest) {
@@ -40,7 +55,7 @@ astarSearch <- function (roads, car, destination) {
   while (reached != 1) {
     df = as.data.frame(do.call(rbind, lapply(frontier, unlist)))
     # TODO: breaks ties arbitrarily as of now
-    # CAN DO: is one of smallest cost is of destination then no need to go any further
+    # CAN DO: if one out of the smallest cost ones is the destination then no need to go any further
     expandedIndex = which(df$f==min(df$f))[1]
     expanded = frontier[[expandedIndex]]
     frontier = frontier[-expandedIndex] # remove the chosen one from the frontier
