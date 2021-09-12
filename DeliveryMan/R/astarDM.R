@@ -57,13 +57,13 @@ astarSearch <- function (roads, car, destination) {
 
   run = 1
   while (reached != 1) {
-    df = as.data.frame(do.call(rbind, lapply(frontier, unlist)))
+    # find the node in the frontier with the lowest score
+    scores=sapply(frontier,function(item)item$f)
     # TODO: breaks ties arbitrarily as of now
     # CAN DO: if one out of the smallest cost ones is the destination then no need to go any further
-    expandedIndex = which(df$f==min(df$f))[1]
+    expandedIndex = which.min(scores)
     expanded = frontier[[expandedIndex]]
     frontier = frontier[-expandedIndex] # remove the chosen one from the frontier
-    df = as.data.frame(do.call(rbind, lapply(frontier, unlist)))
 
     if (expanded$x == destination[1] & expanded$y == destination[2]) {
       reached = 1
@@ -73,30 +73,32 @@ astarSearch <- function (roads, car, destination) {
     if (expanded$y-1 > 0) {
       neighbourNode = list(x = expanded$x, y = expanded$y-1)
       g = expanded$g + roads$vroads[expanded$x, expanded$y-1]
-      frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, df, 2)
+      frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, 2)
     }
     if (expanded$y+1 <= 10) {
       neighbourNode = list(x = expanded$x, y = expanded$y+1)
       g = expanded$g + roads$vroads[expanded$x, expanded$y]
-      frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, df, 8)
+      frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, 8)
     }
     if (expanded$x-1 > 0) {
       neighbourNode = list(x = expanded$x-1, y = expanded$y)
       g = expanded$g + roads$hroads[expanded$x-1, expanded$y]
-      frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, df, 4)
+      frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, 4)
     }
     if (expanded$x+1 <= 10) {
       neighbourNode = list(x = expanded$x+1, y = expanded$y)
       g = expanded$g + roads$hroads[expanded$x, expanded$y]
-      frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, df, 6)
+      frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, 6)
     }
     run = run+1
   }
 }
 
-addNeighbourToFrontier <- function (expanded, g, neighbourNode, destination, frontier, df, directionNumber) {
+addNeighbourToFrontier <- function (expanded, g, neighbourNode, destination, frontier, directionNumber) {
   h = distanceBetweenCoordinates(c(neighbourNode$x,neighbourNode$y), destination)
-  neighbourIndex = which(df$x == neighbourNode$x & df$y == neighbourNode$y)
+  frontierX = sapply(frontier, function(item)item$x)
+  frontierY = sapply(frontier, function(item)item$y)
+  neighbourIndex = which(frontierX == neighbourNode$x & frontierY == neighbourNode$y)
   if (length(neighbourIndex) != 0) {
     if (frontier[[neighbourIndex]]$g >= g) {
       frontier[[neighbourIndex]]$g = g
