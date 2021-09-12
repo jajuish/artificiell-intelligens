@@ -44,7 +44,7 @@ astarSearch <- function (roads, car, destination) {
     y = car$y,
     cost = 0,
     h = 0,
-    f = cost+h,
+    f = 0,
     path = c()
   ))
 
