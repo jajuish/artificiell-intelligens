@@ -1,16 +1,18 @@
+#' astarDM
+#'
+#' The function to be passed in place of "carReady"
+#' @param roads
+#' @param car
+#' @param packages
+#' @return car with the updated $nextMove
 astarDM <- function (roads, car, packages) {
   if (car$load == 0) {
     # if car load is 0 and there is no point to reach yet, set a package to pick up
-    if (is.null(car$mem$pointToReach)) {
-      nextPackageTopick = selectPackage(c(car$x, car$y), packages)
-      # print(nextPackageTopick)
-      car$mem = list(pointToReach = c(packages[nextPackageTopick, 1], packages[nextPackageTopick, 2]))
-    }
-    destination = car$mem$pointToReach
+    nextPackageTopick = selectPackage(c(car$x, car$y), packages)
+    destination = c(packages[nextPackageTopick, 1], packages[nextPackageTopick, 2])
   } else {
     # astar search for current point till destination
     destination = c(packages[car$load, 3], packages[car$load, 4])
-    car$mem = NULL
   }
   if (car$x == destination[1] & car$y == destination[2]) {
     car$nextMove = 5
@@ -41,7 +43,6 @@ distanceBetweenCoordinates <- function (src, dest) {
 }
 
 astarSearch <- function (roads, car, destination) {
-  #TODO: if current node is dest, go for it ?? or maybe not eh .. check
   frontier = list(list(
     x = car$x,
     y = car$y,
