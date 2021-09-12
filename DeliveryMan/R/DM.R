@@ -76,13 +76,37 @@ closeDM=function(roads,car,packages) {
     offset=2
   }
   
-  if (car$x<packages[toGo,1+offset]) {nextMove=6}
-  else if (car$x>packages[toGo,1+offset]) {nextMove=4}
-  else if (car$y<packages[toGo,2+offset]) {nextMove=8}
-  else if (car$y>packages[toGo,2+offset]) {nextMove=2}
-  else {nextMove=5}
+  eta = 99
+  # Stay still (move 5) by default
+  nextMove = 5
+  
+  # Determine right, left or none
+  if(car$x<packages[toGo,1+offset]){
+    nextMove = 6
+    eta = roads$hroads[car$x,car$y]
+  } else if(car$x>packages[toGo,1+offset]){
+    nextMove = 4
+    eta = roads$hroads[car$x-1,car$y]
+  }
+  
+  # Determine up, down or none
+  if (car$y<packages[toGo,2+offset]){
+    # if x-axis route is longer than y-axis route
+    if(eta > roads$vroads[car$x,car$y]){
+      eta = roads$vroads[car$x,car$y]
+      nextMove=8
+    }
+  } else if (car$y>packages[toGo,2+offset]) {
+    if(eta > roads$vroads[car$x,car$y-1]){
+      eta = roads$vroads[car$x,car$y-1]
+      nextMove=2
+    }
+  }
+  
+  print(nextMove)
+  
   car$nextMove=nextMove
-  car$mem=list()
+  #car$mem=list()
   return (car)
 }
 
@@ -127,7 +151,7 @@ basicDM=function(roads,car,packages) {
   else if (car$y>packages[toGo,2+offset]) {nextMove=2}
   else {nextMove=5}
   car$nextMove=nextMove
-  car$mem=list()
+  #car$mem=list()
   return (car)
 }
 
@@ -287,8 +311,8 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,
     }
     if (car$wait==0) {
       if (car$load==0) {
-        # packageOn returns the row in package matrix of an available package, 
-        # otherwise returns 0.
+        # packageOn returns the row in package matrix if a package is available
+        # on current x-y coordinates, otherwise returns 0.
         on=packageOn(car$x,car$y,packages)
         # If package is available
         if (on) {
@@ -330,6 +354,10 @@ packageOn<-function(x,y,packages){
   }
   return (0)
 }
+#' Process the input move argument.
+#' Applies delays corresponding to the traversed road's value.
+#' Up and Right of the x-y coordinate match vroads and hroads coordiates.
+#'
 #' @keywords internal
 processNextMove<-function(car,roads,dim) {
   nextMove=car$nextMove
