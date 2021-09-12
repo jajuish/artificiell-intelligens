@@ -71,22 +71,22 @@ astarSearch <- function (roads, car, destination) {
     }
 
     if (expanded$y-1 > 0) {
-      neighbourNode = list(x = expanded$x, y = expanded$y-1)
+      neighbourNode = c(expanded$x, expanded$y-1)
       g = expanded$g + roads$vroads[expanded$x, expanded$y-1]
       frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, 2)
     }
     if (expanded$y+1 <= 10) {
-      neighbourNode = list(x = expanded$x, y = expanded$y+1)
+      neighbourNode = c(expanded$x, expanded$y+1)
       g = expanded$g + roads$vroads[expanded$x, expanded$y]
       frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, 8)
     }
     if (expanded$x-1 > 0) {
-      neighbourNode = list(x = expanded$x-1, y = expanded$y)
+      neighbourNode = c(expanded$x-1, expanded$y)
       g = expanded$g + roads$hroads[expanded$x-1, expanded$y]
       frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, 4)
     }
     if (expanded$x+1 <= 10) {
-      neighbourNode = list(x = expanded$x+1, y = expanded$y)
+      neighbourNode = c(expanded$x+1, expanded$y)
       g = expanded$g + roads$hroads[expanded$x, expanded$y]
       frontier = addNeighbourToFrontier(expanded, g, neighbourNode, destination, frontier, 6)
     }
@@ -95,10 +95,10 @@ astarSearch <- function (roads, car, destination) {
 }
 
 addNeighbourToFrontier <- function (expanded, g, neighbourNode, destination, frontier, directionNumber) {
-  h = distanceBetweenCoordinates(c(neighbourNode$x,neighbourNode$y), destination)
+  h = distanceBetweenCoordinates(neighbourNode, destination)
   frontierX = sapply(frontier, function(item)item$x)
   frontierY = sapply(frontier, function(item)item$y)
-  neighbourIndex = which(frontierX == neighbourNode$x & frontierY == neighbourNode$y)
+  neighbourIndex = which(frontierX == neighbourNode[1] & frontierY == neighbourNode[2])
   if (length(neighbourIndex) != 0) {
     if (frontier[[neighbourIndex]]$g >= g) {
       frontier[[neighbourIndex]]$g = g
@@ -107,8 +107,8 @@ addNeighbourToFrontier <- function (expanded, g, neighbourNode, destination, fro
     }
   } else {
     frontier = append(frontier, list(list(
-      x = neighbourNode$x,
-      y = neighbourNode$y,
+      x = neighbourNode[1],
+      y = neighbourNode[2],
       g = g,
       h = h,
       f = g+h,
