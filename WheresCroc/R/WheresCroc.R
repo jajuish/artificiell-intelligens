@@ -1,3 +1,6 @@
+# source("E:/Studies/Artificial_Intelligence/astarDM/WheresCroc/R/WheresCroc.R")
+# runWheresCroc(manualWC, showCroc = T)
+
 #' randomWC
 #'
 #' Control function for Where's Croc where moves are random.
@@ -13,19 +16,49 @@ randomWC=function(moveInfo,readings,positions,edges,probs) {
   return(moveInfo)
 }
 
+#' getLike
+#'
+#' Compares the chemical levels in probs with provided readings to generate
+#' percentual likelyhoods of each pool of water.
+getLike=function(probs, readings){
+  odds = list(
+    salinity=NULL,
+    phosphate=NULL,
+    nitrogen=NULL
+  )
+  
+  for(i in 1:40){
+    odds$salinity = append(odds$salinity, 
+      dnorm(readings[1],probs$salinity[i,1],probs$salinity[i,2]))
+    odds$phosphate = append(odds$phosphate, 
+      dnorm(readings[2],probs$phosphate[i,1],probs$phosphate[i,2]))
+    odds$nitrogen = append(odds$nitrogen, 
+      dnorm(readings[3],probs$nitrogen[i,1],probs$nitrogen[i,2]))
+  }
+  
+  return(odds)
+}
+
 #' manualWC
 #'
 #' Control function for Where's Croc that allows manual play using keyboard.
-#' @param moveInfo See runWheresCroc for details
-#' @param readings See runWheresCroc for details
-#' @param positions See runWheresCroc for details
-#' @param edges See runWheresCroc for details
-#' @param probs See runWheresCroc for details
+#' @param moveInfo Previous moves
+#' @param readings Crocodile readings: [salinity, phosphorate, nitrogen]
+#' @param positions Position of: [BP1, BP2, Player]
+#' @param edges Details which nodes are connected
+#' @param probs Chemical levels of each water pool
 #' @return See runWheresCroc for details
 #' @export
 manualWC=function(moveInfo,readings,positions,edges,probs) {
   options=getOptions(positions[3],edges)
-  print("Move 1 options (plus 0 for search):")
+  
+  odds = getLike(probs, readings)
+  #print(odds)
+  sum = NULL;
+  
+  # TODO: Search for the index with greatest common percentiles
+  
+  print("Move 1/2 options (plus 0=search, q=quit):")
   print(options)
   mv1=readline("Move 1: ")
   if (mv1=="q") {stop()}
@@ -36,7 +69,7 @@ manualWC=function(moveInfo,readings,positions,edges,probs) {
   if (mv1!=0) {
     options=getOptions(mv1,edges)
   }
-  print("Move 2 options (plus 0 for search):")
+  print("Move 2/2 options (plus 0=search, q=quit):")
   print(options)
   mv2=readline("Move 2: ")
   if (mv2=="q") {stop()}
@@ -352,7 +385,10 @@ getEdges=function() {
   return (edges)
 }
 
-#' @keywords internal
+#' Randomly generates chemical levels for each position
+#' Seems to produce a mean value and deviation value for each index. TA's 
+#' suggest we use dnorm() to estimate the likelihood of a particular quantile.
+#'  @keywords internal
 getProbs=function(){
   salinity=cbind(runif(40,100,200),runif(40,5,30))
   phosphate=cbind(runif(40,100,200),runif(40,5,30))
@@ -393,7 +429,8 @@ plotGameboard=function(points,edges,move,positions,showCroc) {
   text(points[,1]+.4, points[,2], labels=as.character(1:40))
 }
 
-#' @keywords internal
+#' Returns the available movement options for a given point
+#'  @keywords internal
 getOptions=function(point,edges) {
   c(edges[which(edges[,1]==point),2],edges[which(edges[,2]==point),1],point)
 }
