@@ -5,7 +5,7 @@
 #' @param car
 #' @param packages
 #' @return car with the updated $nextMove
-astarDM <- function (roads, car, packages) {
+myFunction <- function (roads, car, packages) {
   if (car$load == 0) {
     # if car load is 0 and there is no point to reach yet, set a package to pick up
     nextPackageTopick = selectPackage(c(car$x, car$y), packages)
