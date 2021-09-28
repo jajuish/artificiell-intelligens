@@ -2,10 +2,30 @@
 #' 
 #' The function to be passed
 myFunction = function(moveInfo, readings, positions, edges, probs) {
-  s0 = getInitialState(positions[1], positions[2])
+  currentNode = positions[3]
+  bp1Pos = positions[1]
+  bp2Pos = positions[2]
+
+  ######## GET CROC'S LOCATION #######
+  s0 = getInitialState(bp1Pos, bp2Pos)
   e = getEmissionMatrix(probs, readings)
-  st = hiddenMarkovModel(s0, positions[3], edges, e)
+  st = hiddenMarkovModel(s0, currentNode, edges, e)
   crocLocation = which(st == max(st))
+
+  print("crocLocation")
+  print(crocLocation)
+
+  ######## GET PATH AND RETURN #######
+  # path = getShortestPath(currentNode, crocLocation, edges)
+  # if(length(path) >= 2) { # croc is two or more nodes away
+  #   moveInfo$moves = c(path[1], path[2])
+  # } else if(length(path) == 1) { # croc is one node away
+  #   moveInfo$moves = c(path[1], 0)
+  # } else if(length(path) == 0) { # croc is at same position
+  #   moveInfo$moves=c(0,0)  
+  # }
+
+  # return (moveInfo)
 }
 
 #' hiddenMarkovModel
@@ -13,14 +33,18 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
 #' Calculates the next state (St) given the current state,
 #' the transition matrix and the emission matrix
 hiddenMarkovModel = function(prevStateProbs, currentNode, edges, observations) {
-  st = 0
-  for (i in 1:40) {
-    st = st + (prevStateProbs[i] * getTransitionValue(i, currentNode, edges))
+  st = rep(0,40)
+  for (x in 1:40) {
+    p = 0
+    for (i in 1:40) {
+      p = p + (prevStateProbs[i] * getTransitionValue(i, currentNode, edges))
+    }
+    st[x] = p * observations[x]
   }
-  st = st * observations
   st = st / sum(st) # normalize
 
   return (st)
+
 }
 
 #' getInitialState
@@ -46,6 +70,8 @@ getInitialState = function(bp1Pos, bp2Pos, numNodes = 40) {
     s0[croc_at] = 1
   }
 
+  # print("s0")
+  # print(s0)
   return (s0)
 }
 
@@ -77,4 +103,45 @@ getEmissionMatrix = function(probs, readings) {
   emissionMatrix = salinity * phosphate * nitrogen
   emissionMatrix = emissionMatrix / sum(emissionMatrix) # normalize
   return (emissionMatrix)
+}
+
+#' getShortestPath
+#' 
+#' Gets shortest path from source node to destination using graph search
+#' algorithm (BFS)
+getShortestPath = function(source, destination, edges) {
+  visited = c()
+  frontier = c()
+  parents = replicate(40, 0)
+
+  expandedNode = source
+  parents[source] = -1
+  while(expandedNode != destination) {
+    # set the expanded node as visited
+    visited = append(visited, expandedNode)
+
+    # get its neighbours and add to the frontier and search tree
+    neighbours = getOptions(expandedNode, edges)
+    for (node in neighbours) {
+      if (!is.element(node, frontier) && !is.element(node, visited)) {
+        frontier = append(frontier, node)
+        parents[node] = expandedNode
+      }
+    }
+
+    # get the next node from the frontier
+    expandedNode = frontier[1]
+    frontier = setdiff(frontier, expandedNode)
+  }
+  
+  # print("parents")
+  # print(parents)
+  nextNode = parents[destination]
+  path = c()
+  while(nextNode != source) {
+    nextNode = parents[nextNode]
+    path = c(c(nextNode), path)
+  }
+
+  return (path)
 }
