@@ -29,12 +29,6 @@ randomWC=function(moveInfo,readings,positions,edges,probs) {
 manualWC=function(moveInfo,readings,positions,edges,probs) {
   options=getOptions(positions[3],edges)
   
-  odds = getLike(probs, readings)
-  #print(odds)
-  sum = NULL;
-  
-  # TODO: Search for the index with greatest common percentiles
-  
   print("Move 1/2 options (plus 0=search, q=quit):")
   print(options)
   mv1=readline("Move 1: ")
@@ -55,6 +49,7 @@ manualWC=function(moveInfo,readings,positions,edges,probs) {
     mv2=0
   }
   moveInfo$moves=c(mv1,mv2)
+  
   return(moveInfo)
 }
 
