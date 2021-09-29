@@ -1,3 +1,45 @@
+debugWC=function(moveInfo,readings,positions,edges,probs) {
+  moveInfo$mem$status=1
+  
+  options=getOptions(positions[3],edges)
+  
+  print("MoveInfo:")
+  print(moveInfo$moves)
+  print(moveInfo$mem)
+  
+  print("Position")
+  print(positions)
+  
+  s0 = getInitialState(positions[1], positions[2])
+  e = getEmissionMatrix(probs, readings)
+  st = hiddenMarkovModel(s0, positions[3], edges, e)
+  
+  # TODO: Search for the index with greatest common percentiles
+  
+  print("Move 1/2 options (plus 0=search, q=quit):")
+  print(options)
+  mv1=readline("Move 1: ")
+  if (mv1=="q") {stop()}
+  if (!mv1 %in% options && mv1 != 0) {
+    warning ("Invalid move. Search ('0') specified.")
+    mv1=0
+  }
+  if (mv1!=0) {
+    options=getOptions(mv1,edges)
+  }
+  print("Move 2/2 options (plus 0=search, q=quit):")
+  print(options)
+  mv2=readline("Move 2: ")
+  if (mv2=="q") {stop()}
+  if (!mv1 %in% options && mv1 != 0) {
+    warning ("Invalid move. Search ('0') specified.")
+    mv2=0
+  }
+  moveInfo$moves=c(mv1,mv2)
+  
+  return(moveInfo)
+}
+
 #' myFunction
 #' 
 #' The function to be passed
@@ -33,18 +75,20 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
 #' Calculates the next state (St) given the current state,
 #' the transition matrix and the emission matrix
 hiddenMarkovModel = function(prevStateProbs, currentNode, edges, observations) {
-  st = rep(0,40)
-  for (x in 1:40) {
-    p = 0
-    for (i in 1:40) {
-      p = p + (prevStateProbs[i] * getTransitionValue(i, currentNode, edges))
-    }
-    st[x] = p * observations[x]
+  st = c();
+  for (i in 1:40) {
+    st[i] = (prevStateProbs[i] * getTransitionValue(i, currentNode, edges))
+    print(i)
+    print(getTransitionValue(i, currentNode, edges))
   }
   st = st / sum(st) # normalize
 
   return (st)
 
+}
+
+shortestPath = function(target){
+  
 }
 
 #' getInitialState
@@ -91,7 +135,7 @@ getTransitionValue = function(currentNode, nextNode, edges) {
 }
 
 #' getEmissionMatrix
-#'
+#''
 #' Compares the chemical levels in probs with provided readings to generate
 #' percentual likelyhoods of each pool of water for croc's observations/emissions,
 #' given the current state
