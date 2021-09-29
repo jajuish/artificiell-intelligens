@@ -68,6 +68,29 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
   # }
 
   # return (moveInfo)
+  
+  print("Move 1/2 options (plus 0=search, q=quit):")
+  print(options)
+  mv1=readline("Move 1: ")
+  if (mv1=="q") {stop()}
+  if (!mv1 %in% options && mv1 != 0) {
+    warning ("Invalid move. Search ('0') specified.")
+    mv1=0
+  }
+  if (mv1!=0) {
+    options=getOptions(mv1,edges)
+  }
+  print("Move 2/2 options (plus 0=search, q=quit):")
+  print(options)
+  mv2=readline("Move 2: ")
+  if (mv2=="q") {stop()}
+  if (!mv1 %in% options && mv1 != 0) {
+    warning ("Invalid move. Search ('0') specified.")
+    mv2=0
+  }
+  moveInfo$moves=c(mv1,mv2)
+  
+  return(moveInfo)
 }
 
 #' hiddenMarkovModel
@@ -84,34 +107,68 @@ hiddenMarkovModel = function(prevStateProbs, currentNode, edges, observations) {
   st = st / sum(st) # normalize
 
   return (st)
-
-}
-
-shortestPath = function(target){
-  
 }
 
 #' getInitialState
-#' 
 #' Gets the initial/first state (S0)
-getInitialState = function(bp1Pos, bp2Pos, numNodes = 40) {
+#' @param bp1Pos Integer. Position of backpacker 1
+#' @param bp2Pos Integer. Position of backpacker 2
+#' @param bp1Dead Boolean. Did backpacker 1 die on a previous turn?
+#' @param bp1Pos Boolean. Did backpacker 2 die on a previous turn?
+#' @param numNodes Integer. Number of nodes in the network
+getInitialState = function(bp1Pos, bp2Pos, bp1Dead, bp2Dead, numNodes = 40) {
   s0 = rep(1/numNodes,numNodes)
-
+  remNodes = numnodes
+  
   # if both backpackers are alive, croc is not at those positions
   # not checking for NA because initially, they won't be NA
   if (bp1Pos > 0 && bp2Pos > 0) {
-    s0 = rep(1/(numNodes-2), numNodes)
+    if(bp1Pos == bp2Pos){
+      remNodes = remNodes -1
+    }
+    else{
+      remNodes = remNodes -2
+    }
+    
+    s0 = rep(1/remNodes, numNodes)
     s0[bp1Pos] = 0
     s0[bp2Pos] = 0
-  } else if (bp1Pos < 0 || bp2Pos < 0) { # if one just died, croc is at that position
-    croc_at = 0
-    if (bp1Pos < 0) {
-      croc_at = -1 * bp1Pos
-    } else {
-      croc_at = -1 * bp2Pos
+  } else {
+    # Someone is dead...
+    # Is backpacker 1 dead?
+    if(bp1Pos < 0){
+      # Did he just die (was NOT dead previously)?
+      if(!(bp1Dead))
+        # Croc must be at backpacker's position
+        croc_at = abs(bp1Pos)
+    }else{
+      # Carry on then...
+      remNodes = remNodes - 1
     }
-    s0 = rep(0, numNodes)
-    s0[croc_at] = 1
+    # Is backpacker 2 dead?
+    if(bp1Pos < 0){
+      # Did he just die (was NOT dead previously)?
+      if(!(bp2Dead))
+        # Croc must be at backpacker's position
+        croc_at = abs(bp2Pos)
+    }else{
+      # Carry on then...
+      remNodes = remNodes - 1
+    }
+    
+    # Do we know where croc is?
+    if(croc_at > 0){
+      s0 = rep(0, numNodes)
+      s0[croc_at] = 1
+    }
+    else{
+      s0 = rep(1/remNodes, numNodes)
+      # Backpacker 1 alive?
+      if(bp1Pos>0)
+        s0[bp1Pos] = 0
+      else if(bp2Pos>0)
+        s0[bp2Pos] = 0
+    }
   }
 
   # print("s0")
@@ -119,11 +176,36 @@ getInitialState = function(bp1Pos, bp2Pos, numNodes = 40) {
   return (s0)
 }
 
+#' getTransitionMatrix
+#'
+#' Gets a 40-40 matrix with all the probabilities of going from node A to node B
+#' Matrix is structured as:
+#' matrix[A,B]
+#' For example:
+#'    Going from node 5 to node 7
+#'    matrix[5,7] = 0.2
+getTransitionMatrix = function(edges) {
+  tm = matrix(0,40,40)
+  neighbours = 0
+  prob = 0
+  
+  for(i in 1:40){
+    neighbours = getOptions(i, edges)
+    prob = 1/length(neighbours)
+    for(n in neighbours){
+      tm[i,n] = prob
+    }
+  }
+  
+  return(tm)
+}
+
 #' getTransitionValue
 #' 
 #' Computes a single transition value from the transition matrix "T"
 #' P(S1 = nextNode | S0 = currentNode)
 getTransitionValue = function(currentNode, nextNode, edges) {
+  
   neighbours = getOptions(currentNode, edges)
 
   # if the nextNode is a neighbour of the currentNode, then probability is equal among all neighbours
