@@ -6,26 +6,43 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
   bp1Pos = positions[1]
   bp2Pos = positions[2]
 
+  status = moveInfo$mem$status
+
+  if (status == 0 || status == 1) {
+    # moveInfo$mem$s0 = getInitialState(bp1Pos, bp2Pos)
+    moveInfo$mem$s0 = fInit(bp1Pos, bp2Pos)
+  }
+
   ######## GET CROC'S LOCATION #######
-  s0 = getInitialState(bp1Pos, bp2Pos)
+  s0 = moveInfo$mem$s0
   e = getEmissionMatrix(probs, readings)
   st = hiddenMarkovModel(s0, currentNode, edges, e)
   crocLocation = which(st == max(st))
 
-  print("crocLocation")
-  print(crocLocation)
+  # print("crocLocation")
+  # print(crocLocation)
+
+  neighbors = getOptions(positions[3], edges)
+  if(crocLocation %in% neighbors){
+    moveInfo$moves = c(crocLocation,0)
+    return (moveInfo)
+  }
 
   ######## GET PATH AND RETURN #######
   # path = getShortestPath(currentNode, crocLocation, edges)
-  # if(length(path) >= 2) { # croc is two or more nodes away
-  #   moveInfo$moves = c(path[1], path[2])
-  # } else if(length(path) == 1) { # croc is one node away
-  #   moveInfo$moves = c(path[1], 0)
-  # } else if(length(path) == 0) { # croc is at same position
-  #   moveInfo$moves=c(0,0)  
-  # }
+  path = bfsSearch(currentNode, crocLocation, edges)
+  if(length(path) >= 2) { # croc is two or more nodes away
+    moveInfo$moves = c(path[1], path[2])
+  } else if(length(path) == 1) { # croc is one node away
+    moveInfo$moves = c(path[1], 0)
+  } else if(length(path) == 0) { # croc is at same position
+    moveInfo$moves=c(0,0)  
+  }
 
-  # return (moveInfo)
+  moveInfo$mem$s0 = st
+  moveInfo$mem$status = 2
+
+  return (moveInfo)
 }
 
 #' hiddenMarkovModel
@@ -34,12 +51,12 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
 #' the transition matrix and the emission matrix
 hiddenMarkovModel = function(prevStateProbs, currentNode, edges, observations) {
   st = rep(0,40)
-  for (x in 1:40) {
+  for (i in 1:40) {
     p = 0
-    for (i in 1:40) {
-      p = p + (prevStateProbs[i] * getTransitionValue(i, currentNode, edges))
+    for (j in 1:40) {
+      p = p + (prevStateProbs[j] * getTransitionValue(j, currentNode, edges))
     }
-    st[x] = p * observations[x]
+    st[i] = p * observations[i]
   }
   st = st / sum(st) # normalize
 
