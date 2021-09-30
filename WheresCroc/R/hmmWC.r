@@ -9,28 +9,26 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
   status = moveInfo$mem$status
 
   if (status == 0 || status == 1) {
-    # moveInfo$mem$s0 = getInitialState(bp1Pos, bp2Pos)
-    moveInfo$mem$s0 = fInit(bp1Pos, bp2Pos)
+    moveInfo$mem$s0 = getInitialState(bp1Pos, bp2Pos)
   }
 
   ######## GET CROC'S LOCATION #######
   s0 = moveInfo$mem$s0
   e = getEmissionMatrix(probs, readings)
   st = hiddenMarkovModel(s0, currentNode, edges, e)
-  crocLocation = which(st == max(st))
+  if ((!is.na(bp1Pos) && bp1Pos == -1)) {
+    crocLocation = -1 * bp1Pos
+  } else if ((!is.na(bp2Pos) && bp2Pos == -1)) {
+    crocLocation = -1 * bp2Pos
+  } else {
+    crocLocation = which(st == max(st))
+  }
 
   # print("crocLocation")
   # print(crocLocation)
 
-  neighbors = getOptions(positions[3], edges)
-  if(crocLocation %in% neighbors){
-    moveInfo$moves = c(crocLocation,0)
-    return (moveInfo)
-  }
-
   ######## GET PATH AND RETURN #######
-  # path = getShortestPath(currentNode, crocLocation, edges)
-  path = bfsSearch(currentNode, crocLocation, edges)
+  path = getShortestPath(currentNode, crocLocation, edges)
   if(length(path) >= 2) { # croc is two or more nodes away
     moveInfo$moves = c(path[1], path[2])
   } else if(length(path) == 1) { # croc is one node away
@@ -77,14 +75,14 @@ getInitialState = function(bp1Pos, bp2Pos, numNodes = 40) {
     s0[bp1Pos] = 0
     s0[bp2Pos] = 0
   } else if (bp1Pos < 0 || bp2Pos < 0) { # if one just died, croc is at that position
-    croc_at = 0
+    crocLocation = 0
     if (bp1Pos < 0) {
-      croc_at = -1 * bp1Pos
+      crocLocation = -1 * bp1Pos
     } else {
-      croc_at = -1 * bp2Pos
+      crocLocation = -1 * bp2Pos
     }
     s0 = rep(0, numNodes)
-    s0[croc_at] = 1
+    s0[crocLocation] = 1
   }
 
   # print("s0")
@@ -133,6 +131,10 @@ getShortestPath = function(source, destination, edges) {
 
   expandedNode = source
   parents[source] = -1
+  # print("expandedNode")
+  # print(expandedNode)
+  # print("destination")
+  # print(destination)
   while(expandedNode != destination) {
     # set the expanded node as visited
     visited = append(visited, expandedNode)
@@ -153,11 +155,14 @@ getShortestPath = function(source, destination, edges) {
   
   # print("parents")
   # print(parents)
+
+  prevNode = destination
   nextNode = parents[destination]
   path = c()
-  while(nextNode != source) {
+  while(nextNode != -1) {
+    path = c(c(prevNode), path)
+    prevNode = nextNode
     nextNode = parents[nextNode]
-    path = c(c(nextNode), path)
   }
 
   return (path)
