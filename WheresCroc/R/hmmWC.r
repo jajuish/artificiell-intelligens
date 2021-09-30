@@ -7,25 +7,24 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
   bp2Pos = positions[2]
 
   status = moveInfo$mem$status
-
   if (status == 0 || status == 1) {
     moveInfo$mem$s0 = getInitialState(bp1Pos, bp2Pos)
   }
 
   ######## GET CROC'S LOCATION #######
+  st = rep(0, 40)
   s0 = moveInfo$mem$s0
-  e = getEmissionMatrix(probs, readings)
-  st = hiddenMarkovModel(s0, currentNode, edges, e)
-  if ((!is.na(bp1Pos) && bp1Pos == -1)) {
+  if ((!is.na(bp1Pos) && bp1Pos < 0)) {
     crocLocation = -1 * bp1Pos
-  } else if ((!is.na(bp2Pos) && bp2Pos == -1)) {
+    st[crocLocation] = 1
+  } else if ((!is.na(bp2Pos) && bp2Pos < 0)) {
     crocLocation = -1 * bp2Pos
+    st[crocLocation] = 1
   } else {
+    e = getEmissionMatrix(probs, readings)
+    st = hiddenMarkovModel(s0, currentNode, edges, e)
     crocLocation = which(st == max(st))
   }
-
-  # print("crocLocation")
-  # print(crocLocation)
 
   ######## GET PATH AND RETURN #######
   path = getShortestPath(currentNode, crocLocation, edges)
@@ -50,16 +49,15 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
 hiddenMarkovModel = function(prevStateProbs, currentNode, edges, observations) {
   st = rep(0,40)
   for (i in 1:40) {
-    p = 0
     for (j in 1:40) {
-      p = p + (prevStateProbs[j] * getTransitionValue(j, currentNode, edges))
+      st[i] = st[i] + (prevStateProbs[j] * getTransitionValue(j, i, edges))
     }
-    st[i] = p * observations[i]
+    st[i] = st[i] * observations[i]
   }
+  st[currentNode] = 0
   st = st / sum(st) # normalize
 
   return (st)
-
 }
 
 #' getInitialState
