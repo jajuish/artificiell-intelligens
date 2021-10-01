@@ -22,7 +22,7 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
     st[crocLocation] = 1
   } else {
     e = getEmissionMatrix(probs, readings)
-    st = hiddenMarkovModel(s0, currentNode, edges, e)
+    st = hiddenMarkovModel(s0, edges, e, c(bp1Pos, bp2Pos))
     crocLocation = which(st == max(st))
   }
 
@@ -46,7 +46,7 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
 #' 
 #' Calculates the next state (St) given the current state,
 #' the transition matrix and the emission matrix
-hiddenMarkovModel = function(prevStateProbs, currentNode, edges, observations) {
+hiddenMarkovModel = function(prevStateProbs, edges, observations, bpPos) {
   st = rep(0,40)
   for (i in 1:40) {
     for (j in 1:40) {
@@ -54,7 +54,14 @@ hiddenMarkovModel = function(prevStateProbs, currentNode, edges, observations) {
     }
     st[i] = st[i] * observations[i]
   }
-  st[currentNode] = 0
+
+  # check backpackers' positions
+  if (!is.na(bpPos[1]) && bpPos[1] > 0) {
+    st[bpPos[1]] = 0
+  }
+  if (!is.na(bpPos[2]) && bpPos[2] > 0) {
+    st[bpPos[2]] = 0
+  }
   st = st / sum(st) # normalize
 
   return (st)
