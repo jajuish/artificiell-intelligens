@@ -49,6 +49,13 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
   bp2Pos = positions[2]
 
   ######## GET CROC'S LOCATION #######
+  # Is this the first move?
+  if(moveInfo$mem$status == 0){
+    s0 = getInitialState(bp1Pos, bp2Pos)
+    moveInfo$mem$status = 1
+  }else{
+    s0 = getInitialState(bp1Pos, bp2Pos, moveInfo$mem)
+  }
   s0 = getInitialState(bp1Pos, bp2Pos)
   e = getEmissionMatrix(probs, readings)
   st = hiddenMarkovModel(s0, currentNode, edges, e)
@@ -66,9 +73,9 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
   # } else if(length(path) == 0) { # croc is at same position
   #   moveInfo$moves=c(0,0)  
   # }
-
   # return (moveInfo)
   
+  # Use manual movements in the meantime
   print("Move 1/2 options (plus 0=search, q=quit):")
   print(options)
   mv1=readline("Move 1: ")
@@ -116,7 +123,7 @@ hiddenMarkovModel = function(prevStateProbs, currentNode, edges, observations) {
 #' @param bp1Dead Boolean. Did backpacker 1 die on a previous turn?
 #' @param bp1Pos Boolean. Did backpacker 2 die on a previous turn?
 #' @param numNodes Integer. Number of nodes in the network
-getInitialState = function(bp1Pos, bp2Pos, bp1Dead, bp2Dead, numNodes = 40) {
+getInitialState = function(bp1Pos, bp2Pos, bp1Dead=0, bp2Dead=0, numNodes = 40) {
   s0 = rep(1/numNodes,numNodes)
   remNodes = numnodes
   
