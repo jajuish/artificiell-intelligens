@@ -9,7 +9,7 @@ learn = function (hist) {
 	# P(Pn)
 	#
 	# indices:
-	# P(VTB = 0) | P(VTB = 1)
+	# P(Pn = 0) | P(Pn = 1)
 	# -----------|----------
 	#    [1]     |   [2]
 	#
@@ -61,6 +61,7 @@ learn = function (hist) {
 	#
 	# indices:
 	# Sm | P(LC = 0) | P(LC = 1)
+	# ---|-----------|----------
 	#  0 | [1,1]     | [2,1]
 	#  1 | [1,2]     | [2,2]
 	#
@@ -75,6 +76,7 @@ learn = function (hist) {
 	#
 	# indices:
 	# Sm | P(Br = 0) | P(Br = 1)
+	# ---|-----------|----------
 	#  0 | [1,1]     | [2,1]
 	#  1 | [1,2]     | [2,2]
 	#
@@ -91,7 +93,7 @@ learn = function (hist) {
 	# Pn | mean(Te) | sd(Te)
 	# ---|----------|-------
 	#  0 | [1,1]    | [1,2]
-	#  2 | [2,1]    | [2,2]
+	#  1 | [2,1]    | [2,2]
 	#
 	# P(Te | Pn) = dnorm(VAL, te[Pn +1, 1], te[Pn +1, 2])
 	te = matrix(nrow = 2, ncol = 2)
@@ -169,57 +171,145 @@ learn = function (hist) {
 	return (network)
 }
 
-#    Pn       Te VTB TB Sm LC Br XR Dy
-# 1  NA 38.73447   0 NA  1 NA NA  1  0
-# 2  NA 41.18788   0 NA  0 NA NA  1  0
-# 3  NA 39.23329   1 NA  1 NA NA  1  0
-# 4  NA 39.16066   1 NA  1 NA NA  0  0
-# 5  NA 39.13593   0 NA  0 NA NA  1  0
-# 6  NA 38.64055   0 NA  1 NA NA  1  1
-# 7  NA 40.61668   0 NA  0 NA NA  0  0
-# 8  NA 38.95874   0 NA  0 NA NA  0  0
-# 9  NA 38.65676   0 NA  1 NA NA  0  0
-# 10 NA 40.70658   1 NA  1 NA NA  1  1
-
 diagnose = function (network, cases) {
-	print(network)
-	print(cases)
-	randomValues = round(runif(10, 0, 1))
-	currentIndex = 1
+	# print(network)
+	# print(cases)
+	randomDiscreteValues = round(runif(10000000, 0, 1))
+	currentIndexDisc = 1
+	randomProbabilities = runif(10000000, 0, 1)
+	currentIndexProb = 1
+
+	final = c()
 
 	for (i in 1:length(cases)) {
-		currentCase = cases[i]
+		print("======RUN========")
+		print(i)
+		samples = data.frame()
+		currentCase = cases[i,]
 
 		#### ASSIGNED VALUES
 		#### assign random values to Pn, TB, LC, Br
-		pn = randomValues[currentIndex]
-		currentIndex = currentIndex + 1
-		tb = randomValues[currentIndex]
-		currentIndex = currentIndex + 1
-		lc = randomValues[currentIndex]
-		currentIndex = currentIndex + 1
-		br = randomValues[currentIndex]
-		currentIndex = currentIndex + 1
+		currentCase$Pn = randomDiscreteValues[currentIndexDisc]
+		currentIndexDisc = currentIndexDisc + 1
+		currentCase$TB = randomDiscreteValues[currentIndexDisc]
+		currentIndexDisc = currentIndexDisc + 1
+		currentCase$LC = randomDiscreteValues[currentIndexDisc]
+		currentIndexDisc = currentIndexDisc + 1
+		currentCase$Br = randomDiscreteValues[currentIndexDisc]
+		currentIndexDisc = currentIndexDisc + 1
 
-		#### PROPOSED VALUES
-		#### propose inverse values for the above
-		pn_ = 1-pn
-		tb_ = 1-tb
-		lc_ = 1-lc
-		br_ = 1-br
+		for(j in 1:1500) {
+			#### CALCULATE p_old
+			#### = P(Pn) * P(VTB) * P(Sm) * P(TB | VTB) * P(LC | Sm) * P(Br | Sm) * P(Te | Pn) * P(XR | Pn, TB, LC) * P(Dy | LC, Br)
+			p_old = calculateBayesianProbability(network, currentCase)
 
-		#### CALCULATE p_old
-		#### = P(Pn) * P(VTB) * P(Sm) * P(TB | VTB) * P(LC | Sm) * P(Br | Sm) * P(Te | Pn) * P(XR | Pn, TB, LC) * P(Dy | LC, Br)
-		# p_old =
-		# 	network$Pn[pn +1] * # P(Pn)
-		# 	network$VTB[currentCase$VTB +1] * # P(VTB)
-		# 	network$Sm[currentCase$Sm +1] * # P(Sm)
-		# 	network$TB[currentCase$VTB +1, tb +1] * # P(TB | VTB)
-		# 	network$LC[currentCase$Sm +1, lc +1] * # P(LC | Sm)
-		# 	network$Br[currentCase$Sm +1, br +1] * # P(Br | Sm)
-		# 	 * # P(Te | Pn)
-		# 	 * # P(XR | Pn, TB, LC)
-		# 	 * # P(Dy | LC, Br)
+			#### PROPOSED VALUE FOR Pn
+			currentCase$Pn = 1-currentCase$Pn
 
+			#### CALCULATE p_new
+			#### = P(Pn) * P(VTB) * P(Sm) * P(TB | VTB) * P(LC | Sm) * P(Br | Sm) * P(Te | Pn) * P(XR | Pn, TB, LC) * P(Dy | LC, Br)
+			p_new = calculateBayesianProbability(network, currentCase)
+
+			if (p_new > p_old) {
+				# accept the new value for currentCase$Pn
+			} else {
+				newValueProb = p_new / p_old
+				randomProb = randomProbabilities[currentIndexProb]
+				currentIndexProb = currentIndexProb + 1
+				if (randomProb < newValueProb) {
+					# accept the new value for currentCase$Pn
+				} else {
+					currentCase$Pn = 1 - currentCase$Pn
+				}
+			}
+
+			#### PROPOSED VALUE FOR TB
+			currentCase$TB = 1-currentCase$TB
+			p_old = p_new
+			p_new = calculateBayesianProbability(network, currentCase)
+
+			if (p_new > p_old) {
+				# accept the new value for currentCase$TB
+			} else {
+				newValueProb = p_new / p_old
+				randomProb = randomProbabilities[currentIndexProb]
+				currentIndexProb = currentIndexProb + 1
+				if (randomProb < newValueProb) {
+					# accept the new value for currentCase$TB
+				} else {
+					currentCase$TB = 1 - currentCase$TB
+				}
+			}
+
+			#### PROPOSED VALUE FOR LC
+			currentCase$LC = 1-currentCase$LC
+			p_old = p_new
+			p_new = calculateBayesianProbability(network, currentCase)
+
+			if (p_new > p_old) {
+				# accept the new value for currentCase$LC
+			} else {
+				newValueProb = p_new / p_old
+				randomProb = randomProbabilities[currentIndexProb]
+				currentIndexProb = currentIndexProb + 1
+				if (randomProb < newValueProb) {
+					# accept the new value for currentCase$LC
+				} else {
+					currentCase$LC = 1 - currentCase$LC
+				}
+			}
+
+			#### PROPOSED VALUE FOR Br
+			currentCase$Br = 1-currentCase$Br
+
+			p_old = p_new
+			p_new = calculateBayesianProbability(network, currentCase)
+
+			if (p_new > p_old) {
+				# accept the new value for currentCase$Br
+			} else {
+				newValueProb = p_new / p_old
+				randomProb = randomProbabilities[currentIndexProb]
+				currentIndexProb = currentIndexProb + 1
+				if (randomProb < newValueProb) {
+					# accept the new value for currentCase$Br
+				} else {
+					currentCase$Br = 1 - currentCase$Br
+				}
+			}
+
+			samples <- rbind(samples, currentCase)
+		}
+
+		samples = samples[-c(1:500), ]
+		# print("samples for")
+		# print("Pn")
+		# print(mean(samples$Pn))
+		# print("TB")
+		# print(mean(samples$TB))
+		# print("LC")
+		# print(mean(samples$LC))
+		# print("Br")
+		# print(mean(samples$Br))
+
+		final = append(final, c(mean(samples$Pn), mean(samples$TB), mean(samples$LC), mean(samples$Br)))
 	}
+	final = matrix(final, nrow = 10, ncol = 4)
+	print(final)
+	return (final)
+}
+
+calculateBayesianProbability = function(network, currentCase) {
+		#### CALCULATE P(Pn, VTB, Sm, TB, LC, Br, Te, XR, Dy)
+		#### = P(Pn) * P(VTB) * P(Sm) * P(TB | VTB) * P(LC | Sm) * P(Br | Sm) * P(Te | Pn) * P(XR | Pn, TB, LC) * P(Dy | LC, Br)
+		p =
+			network$Pn[currentCase$Pn +1] * # P(Pn)
+			network$VTB[currentCase$VTB +1] * # P(VTB)
+			network$Sm[currentCase$Sm +1] * # P(Sm)
+			network$TB[currentCase$TB +1, currentCase$VTB +1] * # P(TB | VTB)
+			network$LC[currentCase$LC +1, currentCase$Sm +1] * # P(LC | Sm)
+			network$Br[currentCase$Br +1, currentCase$Sm +1] * # P(Br | Sm)
+			dnorm(currentCase$Te, network$Te[currentCase$Pn +1, 1], network$Te[currentCase$Pn +1, 2]) * # P(Te | Pn)
+			network$XR[currentCase$XR +1, currentCase$Pn +1, currentCase$TB +1, currentCase$LC +1] * # P(XR | Pn, TB, LC)
+			network$Dy[currentCase$Dy +1, currentCase$LC +1, currentCase$Br +1] # P(Dy | LC, Br)
 }
