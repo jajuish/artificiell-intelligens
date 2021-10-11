@@ -181,7 +181,7 @@ diagnose = function (network, cases) {
 
 	final = c()
 
-	for (i in 1:length(cases)) {
+	for (i in 1:nrow(cases)) {
 		print("======RUN========")
 		print(i)
 		samples = data.frame()
@@ -225,7 +225,6 @@ diagnose = function (network, cases) {
 
 			#### PROPOSED VALUE FOR TB
 			currentCase$TB = 1-currentCase$TB
-			p_old = p_new
 			p_new = calculateBayesianProbability(network, currentCase)
 
 			if (p_new > p_old) {
@@ -243,7 +242,6 @@ diagnose = function (network, cases) {
 
 			#### PROPOSED VALUE FOR LC
 			currentCase$LC = 1-currentCase$LC
-			p_old = p_new
 			p_new = calculateBayesianProbability(network, currentCase)
 
 			if (p_new > p_old) {
@@ -262,7 +260,6 @@ diagnose = function (network, cases) {
 			#### PROPOSED VALUE FOR Br
 			currentCase$Br = 1-currentCase$Br
 
-			p_old = p_new
 			p_new = calculateBayesianProbability(network, currentCase)
 
 			if (p_new > p_old) {
