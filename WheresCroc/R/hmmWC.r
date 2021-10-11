@@ -3,10 +3,11 @@ myStepFunction = function(moveInfo, readings, positions, edges, probs) {
   
   print("Chosen moves are: ")
   print(moveInfo$moves)
-  mv1=readline("Enter to continue, q to quit: ")
+  mv1=readline("Enter to continue, 0 to stay put, q to quit: ")
   if (mv1=="q") {stop()}
+  else if (mv1=="0") {moveInfo$moves = c(0,0)}
   
-  return(moves)
+  return(moveInfo)
 }
 
 #' myFunction
@@ -14,20 +15,26 @@ myStepFunction = function(moveInfo, readings, positions, edges, probs) {
 #' The function to be passed
 myFunction = function(moveInfo, readings, positions, edges, probs) {
   currentNode = positions[3]
+  
   bp1Pos = positions[1]
+  if(is.na(bp1Pos))
+    bp1Pos = 0
+  
   bp2Pos = positions[2]
+  if(is.na(bp2Pos))
+    bp2Pos = 0
+  
   st = rep(0, 40)
   e = getEmissionMatrix(probs, readings)
   
   ######## GET CROC'S LOCATION #######
   # If this is the first move
-  if (moveInfo$mem$status == 0) {
+  if (moveInfo$mem$status < 2) {
+    #print("Start of round")
+    
     s0 = getInitialState(bp1Pos, bp2Pos, currentNode)
     moveInfo$mem$s0 = s0
-    moveInfo$mem$status = 1
-    # Set backpackers status to alive
-    moveInfo$mem$bp1s = 1
-    moveInfo$mem$bp2s = 1
+    moveInfo$mem$status = 2
     
     # Handle first prediction uniquely
     for (i in 1:40) {
@@ -35,31 +42,31 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
       st[i] = s0[i] * e[i]
     }
     st = st / sum(st) # normalize
-    print(st)
+    #print(st)
     
     crocLocation = which(st == max(st))
   }
-  # Backpacker 1 is dead and was previously alive
-  else if (bp1Pos < 0 && moveInfo$mem$bp1s) {
-    print("Backpacker 1 died")
-    crocLocation = -1 * bp1Pos
-    st[crocLocation] = 1
-    moveInfo$mem$bp1s = 0
-  # Backpacker 2 is dead and was previously alive
-  } else if (bp2Pos < 0 && moveInfo$mem$bp2s) {
-    print("Backpacker 2 died")
-    crocLocation = -1 * bp2Pos
-    st[crocLocation] = 1
-    moveInfo$mem$bp2s = 0
+  # One or both backpackers died
+  else if(bp1Pos < 0 || bp2Pos < 0){
+    if (bp1Pos < 0) {
+      #print("Backpacker 1 died")
+      crocLocation = -1 * bp1Pos
+      st[crocLocation] = 1
+    }
+    if (bp2Pos < 0) {
+      #print("Backpacker 2 died")
+      crocLocation = -1 * bp2Pos
+      st[crocLocation] = 1
+    }
   } else {
     s0 = moveInfo$mem$s0
-    st = hiddenMarkovModel(s0, edges, e)
-    print(st)
+    tMat = getTransitionMatrix(edges)
+    st = hiddenMarkovModel(s0, edges, e, tMat,bp1Pos, bp2Pos)
     crocLocation = which(st == max(st))
   }
   
-  print("crocLocation")
-  print(crocLocation)
+  #print("crocLocation")
+  #print(crocLocation)
   
   ######## GET PATH AND RETURN #######
   path = getShortestPath(currentNode, crocLocation, edges)
@@ -82,21 +89,29 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
 #' 
 #' Calculates the next state (St) given the current state,
 #' the transition matrix and the emission matrix
-hiddenMarkovModel = function(prevStateProbs, edges, observations) {
-  tMat = getTransitionMatrix(edges)
+hiddenMarkovModel = function(prevStateProbs, edges, observations, tMat, bp1Pos, bp2Pos) {
+  #print("Backpacker 1 & 2")
+  #print(bp1Pos)
+  #print(bp2Pos)
   
   st = matrix(0,40,40)
   for(i in 1:40){
-    options = getOptions(i, edges)
-    for(o in options){
-      st[i,o] = prevStateProbs[i] * tMat[i, o]
+    # Skip any nodes with backpackers on them
+    if(i != bp1Pos && i != bp2Pos){
+      options = getOptions(i, edges)
+      for(o in options){
+        st[i,o] = prevStateProbs[i] * tMat[i, o]
+      }
     }
   }
   
   tProb = rep(0,40)
   for (i in 1:40) {
-    #maybe add weight?
-    tProb[i] = sum(st[,i]) * observations[i]
+    # Skip any nodes with backpackers on them
+    if(i != bp1Pos && i != bp2Pos){
+      #maybe add weight?
+      tProb[i] = sum(st[,i]) * observations[i]
+    }
   }
   
   tProb = tProb / sum(tProb) # normalize
@@ -111,10 +126,11 @@ hiddenMarkovModel = function(prevStateProbs, edges, observations) {
 #' @param rangerPos Integer. Position of ranger
 #' @param numNodes Integer. Number of nodes in the network
 getInitialState = function(bp1Pos, bp2Pos, rangerPos, numNodes = 40) {
+  # We assume backpackers and the ranger won't start on the same spot
   remNodes = numNodes-3
   s0 = rep(1/remNodes, numNodes)
   
-  # Croc doesn't start on any of the backpackers or ranger's position
+  # Croc doesn't start on any of the backpackers or ranger's positions
   s0[rangerPos] = 0
   s0[bp1Pos] = 0
   s0[bp2Pos] = 0
