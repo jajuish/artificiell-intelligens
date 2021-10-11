@@ -1,43 +1,12 @@
-debugWC=function(moveInfo,readings,positions,edges,probs) {
-  moveInfo$mem$status=1
+myStepFunction = function(moveInfo, readings, positions, edges, probs) {
+  moveInfo = myFunction(moveInfo, readings, positions, edges, probs)
   
-  options=getOptions(positions[3],edges)
-  
-  print("MoveInfo:")
+  print("Chosen moves are: ")
   print(moveInfo$moves)
-  print(moveInfo$mem)
-  
-  print("Position")
-  print(positions)
-  
-  s0 = getInitialState(positions[1], positions[2])
-  e = getEmissionMatrix(probs, readings)
-  st = hiddenMarkovModel(s0, positions[3], edges, e)
-  
-  # TODO: Search for the index with greatest common percentiles
-  
-  print("Move 1/2 options (plus 0=search, q=quit):")
-  print(options)
-  mv1=readline("Move 1: ")
+  mv1=readline("Enter to continue, q to quit: ")
   if (mv1=="q") {stop()}
-  if (!mv1 %in% options && mv1 != 0) {
-    warning ("Invalid move. Search ('0') specified.")
-    mv1=0
-  }
-  if (mv1!=0) {
-    options=getOptions(mv1,edges)
-  }
-  print("Move 2/2 options (plus 0=search, q=quit):")
-  print(options)
-  mv2=readline("Move 2: ")
-  if (mv2=="q") {stop()}
-  if (!mv1 %in% options && mv1 != 0) {
-    warning ("Invalid move. Search ('0') specified.")
-    mv2=0
-  }
-  moveInfo$moves=c(mv1,mv2)
   
-  return(moveInfo)
+  return(moves)
 }
 
 #' myFunction
@@ -47,145 +16,115 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
   currentNode = positions[3]
   bp1Pos = positions[1]
   bp2Pos = positions[2]
-
-  ######## GET CROC'S LOCATION #######
-  # Is this the first move?
-  if(moveInfo$mem$status == 0){
-    s0 = getInitialState(bp1Pos, bp2Pos)
-    moveInfo$mem$status = 1
-  }else{
-    s0 = getInitialState(bp1Pos, bp2Pos, moveInfo$mem)
-  }
-  s0 = getInitialState(bp1Pos, bp2Pos)
+  st = rep(0, 40)
   e = getEmissionMatrix(probs, readings)
-  st = hiddenMarkovModel(s0, currentNode, edges, e)
-  crocLocation = which(st == max(st))
-
+  
+  ######## GET CROC'S LOCATION #######
+  # If this is the first move
+  if (moveInfo$mem$status == 0) {
+    s0 = getInitialState(bp1Pos, bp2Pos, currentNode)
+    moveInfo$mem$s0 = s0
+    moveInfo$mem$status = 1
+    # Set backpackers status to alive
+    moveInfo$mem$bp1s = 1
+    moveInfo$mem$bp2s = 1
+    
+    # Handle first prediction uniquely
+    for (i in 1:40) {
+      #maybe add weight?
+      st[i] = s0[i] * e[i]
+    }
+    st = st / sum(st) # normalize
+    print(st)
+    
+    crocLocation = which(st == max(st))
+  }
+  # Backpacker 1 is dead and was previously alive
+  else if (bp1Pos < 0 && moveInfo$mem$bp1s) {
+    print("Backpacker 1 died")
+    crocLocation = -1 * bp1Pos
+    st[crocLocation] = 1
+    moveInfo$mem$bp1s = 0
+  # Backpacker 2 is dead and was previously alive
+  } else if (bp2Pos < 0 && moveInfo$mem$bp2s) {
+    print("Backpacker 2 died")
+    crocLocation = -1 * bp2Pos
+    st[crocLocation] = 1
+    moveInfo$mem$bp2s = 0
+  } else {
+    s0 = moveInfo$mem$s0
+    st = hiddenMarkovModel(s0, edges, e)
+    print(st)
+    crocLocation = which(st == max(st))
+  }
+  
   print("crocLocation")
   print(crocLocation)
-
+  
   ######## GET PATH AND RETURN #######
-  # path = getShortestPath(currentNode, crocLocation, edges)
-  # if(length(path) >= 2) { # croc is two or more nodes away
-  #   moveInfo$moves = c(path[1], path[2])
-  # } else if(length(path) == 1) { # croc is one node away
-  #   moveInfo$moves = c(path[1], 0)
-  # } else if(length(path) == 0) { # croc is at same position
-  #   moveInfo$moves=c(0,0)  
-  # }
-  # return (moveInfo)
+  path = getShortestPath(currentNode, crocLocation, edges)
+  if(length(path) >= 2) { # croc is two or more nodes away
+    moveInfo$moves = c(path[1], path[2])
+  } else if(length(path) == 1) { # croc is one node away
+    moveInfo$moves = c(path[1], 0)
+    st[crocLocation] = 0 # In case search misses, mark pool as not having croc
+  } else if(length(path) == 0) { # croc is at same position
+    moveInfo$moves=c(0,0)  
+    st[crocLocation] = 0 # In case search misses, mark pool as not having croc
+  }
   
-  # Use manual movements in the meantime
-  print("Move 1/2 options (plus 0=search, q=quit):")
-  print(options)
-  mv1=readline("Move 1: ")
-  if (mv1=="q") {stop()}
-  if (!mv1 %in% options && mv1 != 0) {
-    warning ("Invalid move. Search ('0') specified.")
-    mv1=0
-  }
-  if (mv1!=0) {
-    options=getOptions(mv1,edges)
-  }
-  print("Move 2/2 options (plus 0=search, q=quit):")
-  print(options)
-  mv2=readline("Move 2: ")
-  if (mv2=="q") {stop()}
-  if (!mv1 %in% options && mv1 != 0) {
-    warning ("Invalid move. Search ('0') specified.")
-    mv2=0
-  }
-  moveInfo$moves=c(mv1,mv2)
+  moveInfo$mem$s0 = st
   
-  return(moveInfo)
+  return (moveInfo)
 }
 
 #' hiddenMarkovModel
 #' 
 #' Calculates the next state (St) given the current state,
 #' the transition matrix and the emission matrix
-hiddenMarkovModel = function(prevStateProbs, currentNode, edges, observations) {
-  st = c();
-  for (i in 1:40) {
-    st[i] = (prevStateProbs[i] * getTransitionValue(i, currentNode, edges))
-    print(i)
-    print(getTransitionValue(i, currentNode, edges))
+hiddenMarkovModel = function(prevStateProbs, edges, observations) {
+  tMat = getTransitionMatrix(edges)
+  
+  st = matrix(0,40,40)
+  for(i in 1:40){
+    options = getOptions(i, edges)
+    for(o in options){
+      st[i,o] = prevStateProbs[i] * tMat[i, o]
+    }
   }
-  st = st / sum(st) # normalize
-
-  return (st)
+  
+  tProb = rep(0,40)
+  for (i in 1:40) {
+    #maybe add weight?
+    tProb[i] = sum(st[,i]) * observations[i]
+  }
+  
+  tProb = tProb / sum(tProb) # normalize
+  
+  return (tProb)
 }
 
 #' getInitialState
 #' Gets the initial/first state (S0)
 #' @param bp1Pos Integer. Position of backpacker 1
 #' @param bp2Pos Integer. Position of backpacker 2
-#' @param bp1Dead Boolean. Did backpacker 1 die on a previous turn?
-#' @param bp1Pos Boolean. Did backpacker 2 die on a previous turn?
+#' @param rangerPos Integer. Position of ranger
 #' @param numNodes Integer. Number of nodes in the network
-getInitialState = function(bp1Pos, bp2Pos, bp1Dead=0, bp2Dead=0, numNodes = 40) {
-  s0 = rep(1/numNodes,numNodes)
-  remNodes = numnodes
+getInitialState = function(bp1Pos, bp2Pos, rangerPos, numNodes = 40) {
+  remNodes = numNodes-3
+  s0 = rep(1/remNodes, numNodes)
   
-  # if both backpackers are alive, croc is not at those positions
-  # not checking for NA because initially, they won't be NA
-  if (bp1Pos > 0 && bp2Pos > 0) {
-    if(bp1Pos == bp2Pos){
-      remNodes = remNodes -1
-    }
-    else{
-      remNodes = remNodes -2
-    }
-    
-    s0 = rep(1/remNodes, numNodes)
-    s0[bp1Pos] = 0
-    s0[bp2Pos] = 0
-  } else {
-    # Someone is dead...
-    # Is backpacker 1 dead?
-    if(bp1Pos < 0){
-      # Did he just die (was NOT dead previously)?
-      if(!(bp1Dead))
-        # Croc must be at backpacker's position
-        croc_at = abs(bp1Pos)
-    }else{
-      # Carry on then...
-      remNodes = remNodes - 1
-    }
-    # Is backpacker 2 dead?
-    if(bp1Pos < 0){
-      # Did he just die (was NOT dead previously)?
-      if(!(bp2Dead))
-        # Croc must be at backpacker's position
-        croc_at = abs(bp2Pos)
-    }else{
-      # Carry on then...
-      remNodes = remNodes - 1
-    }
-    
-    # Do we know where croc is?
-    if(croc_at > 0){
-      s0 = rep(0, numNodes)
-      s0[croc_at] = 1
-    }
-    else{
-      s0 = rep(1/remNodes, numNodes)
-      # Backpacker 1 alive?
-      if(bp1Pos>0)
-        s0[bp1Pos] = 0
-      else if(bp2Pos>0)
-        s0[bp2Pos] = 0
-    }
-  }
-
-  # print("s0")
-  # print(s0)
+  # Croc doesn't start on any of the backpackers or ranger's position
+  s0[rangerPos] = 0
+  s0[bp1Pos] = 0
+  s0[bp2Pos] = 0
+  
   return (s0)
 }
 
 #' getTransitionMatrix
 #'
-#' Gets a 40-40 matrix with all the probabilities of going from node A to node B
+#' Gets a 40 by 40 matrix with all the probabilities of going from node A to node B
 #' Matrix is structured as:
 #' matrix[A,B]
 #' For example:
@@ -214,7 +153,7 @@ getTransitionMatrix = function(edges) {
 getTransitionValue = function(currentNode, nextNode, edges) {
   
   neighbours = getOptions(currentNode, edges)
-
+  
   # if the nextNode is a neighbour of the currentNode, then probability is equal among all neighbours
   if (is.element(nextNode, neighbours)) {
     return(1/length(neighbours))
@@ -246,13 +185,17 @@ getShortestPath = function(source, destination, edges) {
   visited = c()
   frontier = c()
   parents = replicate(40, 0)
-
+  
   expandedNode = source
   parents[source] = -1
+  # print("expandedNode")
+  # print(expandedNode)
+  # print("destination")
+  # print(destination)
   while(expandedNode != destination) {
     # set the expanded node as visited
     visited = append(visited, expandedNode)
-
+    
     # get its neighbours and add to the frontier and search tree
     neighbours = getOptions(expandedNode, edges)
     for (node in neighbours) {
@@ -261,7 +204,7 @@ getShortestPath = function(source, destination, edges) {
         parents[node] = expandedNode
       }
     }
-
+    
     # get the next node from the frontier
     expandedNode = frontier[1]
     frontier = setdiff(frontier, expandedNode)
@@ -269,12 +212,15 @@ getShortestPath = function(source, destination, edges) {
   
   # print("parents")
   # print(parents)
+  
+  prevNode = destination
   nextNode = parents[destination]
   path = c()
-  while(nextNode != source) {
+  while(nextNode != -1) {
+    path = c(c(prevNode), path)
+    prevNode = nextNode
     nextNode = parents[nextNode]
-    path = c(c(nextNode), path)
   }
-
+  
   return (path)
 }
