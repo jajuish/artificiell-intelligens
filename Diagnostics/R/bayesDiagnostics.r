@@ -52,10 +52,10 @@ learn = function (hist) {
 	#
 	# P(TB | VTB) = tb[TB +1, VTB +1]
 	tb = matrix(nrow = 2, ncol = 2)
-	tb[1,1] = length(hist[hist$TB == 0 & hist$VTB == 0, "TB"]) / 10000
-	tb[1,2] = length(hist[hist$TB == 0 & hist$VTB == 1, "TB"]) / 10000
-	tb[2,1] = length(hist[hist$TB == 1 & hist$VTB == 0, "TB"]) / 10000
-	tb[2,2] = length(hist[hist$TB == 1 & hist$VTB == 1, "TB"]) / 10000
+	tb[1,1] = length(hist[hist$TB == 0 & hist$VTB == 0, "TB"]) / length(hist[hist$VTB == 0, "VTB"])
+	tb[1,2] = length(hist[hist$TB == 0 & hist$VTB == 1, "TB"]) / length(hist[hist$VTB == 1, "VTB"])
+	tb[2,1] = length(hist[hist$TB == 1 & hist$VTB == 0, "TB"]) / length(hist[hist$VTB == 0, "VTB"])
+	tb[2,2] = length(hist[hist$TB == 1 & hist$VTB == 1, "TB"]) / length(hist[hist$VTB == 1, "VTB"])
 
 	# P(LC | Sm)
 	#
@@ -67,10 +67,10 @@ learn = function (hist) {
 	#
 	# P(LC | Sm) = lc[LC +1, Sm +1]
 	lc = matrix(nrow = 2, ncol = 2)
-	lc[1,1] = length(hist[hist$LC == 0 & hist$Sm == 0, "LC"]) / 10000
-	lc[1,2] = length(hist[hist$LC == 0 & hist$Sm == 1, "LC"]) / 10000
-	lc[2,1] = length(hist[hist$LC == 1 & hist$Sm == 0, "LC"]) / 10000
-	lc[2,2] = length(hist[hist$LC == 1 & hist$Sm == 1, "LC"]) / 10000
+	lc[1,1] = length(hist[hist$LC == 0 & hist$Sm == 0, "LC"]) / length(hist[hist$Sm == 0, "Sm"])
+	lc[1,2] = length(hist[hist$LC == 0 & hist$Sm == 1, "LC"]) / length(hist[hist$Sm == 1, "Sm"])
+	lc[2,1] = length(hist[hist$LC == 1 & hist$Sm == 0, "LC"]) / length(hist[hist$Sm == 0, "Sm"])
+	lc[2,2] = length(hist[hist$LC == 1 & hist$Sm == 1, "LC"]) / length(hist[hist$Sm == 1, "Sm"])
 
 	# P(Br | Sm)
 	#
@@ -82,10 +82,10 @@ learn = function (hist) {
 	#
 	# P(Br | Sm) = br[Br +1, Sm +1]
 	br = matrix(nrow = 2, ncol = 2)
-	br[1,1] = length(hist[hist$Br == 0 & hist$Sm == 0, "Br"]) / 10000
-	br[1,2] = length(hist[hist$Br == 0 & hist$Sm == 1, "Br"]) / 10000
-	br[2,1] = length(hist[hist$Br == 1 & hist$Sm == 0, "Br"]) / 10000
-	br[2,2] = length(hist[hist$Br == 1 & hist$Sm == 1, "Br"]) / 10000
+	br[1,1] = length(hist[hist$Br == 0 & hist$Sm == 0, "Br"]) / length(hist[hist$Sm == 0, "Sm"])
+	br[1,2] = length(hist[hist$Br == 0 & hist$Sm == 1, "Br"]) / length(hist[hist$Sm == 1, "Sm"])
+	br[2,1] = length(hist[hist$Br == 1 & hist$Sm == 0, "Br"]) / length(hist[hist$Sm == 0, "Sm"])
+	br[2,2] = length(hist[hist$Br == 1 & hist$Sm == 1, "Br"]) / length(hist[hist$Sm == 1, "Sm"])
 
 	# P(Te | Pn)
 	#
@@ -118,22 +118,22 @@ learn = function (hist) {
 	#
 	# P(XR | Pn, TB, LC) = xr[XR +1, Pn +1, TB +1, LC +1]
 	xr = array(dim = c(2,2,2,2))
-	xr[1,1,1,1] = length(hist[hist$XR == 0 & hist$Pn == 0 & hist$TB == 0 & hist$LC == 0, "XR"]) / 10000
-	xr[1,1,1,2] = length(hist[hist$XR == 0 & hist$Pn == 0 & hist$TB == 0 & hist$LC == 1, "XR"]) / 10000
-	xr[1,1,2,1] = length(hist[hist$XR == 0 & hist$Pn == 0 & hist$TB == 1 & hist$LC == 0, "XR"]) / 10000
-	xr[1,1,2,2] = length(hist[hist$XR == 0 & hist$Pn == 0 & hist$TB == 1 & hist$LC == 1, "XR"]) / 10000
-	xr[1,2,1,1] = length(hist[hist$XR == 0 & hist$Pn == 1 & hist$TB == 0 & hist$LC == 0, "XR"]) / 10000
-	xr[1,2,1,2] = length(hist[hist$XR == 0 & hist$Pn == 1 & hist$TB == 0 & hist$LC == 1, "XR"]) / 10000
-	xr[1,2,2,1] = length(hist[hist$XR == 0 & hist$Pn == 1 & hist$TB == 1 & hist$LC == 0, "XR"]) / 10000
-	xr[1,2,2,2] = length(hist[hist$XR == 0 & hist$Pn == 1 & hist$TB == 1 & hist$LC == 1, "XR"]) / 10000
-	xr[2,1,1,1] = length(hist[hist$XR == 1 & hist$Pn == 0 & hist$TB == 0 & hist$LC == 0, "XR"]) / 10000
-	xr[2,1,1,2] = length(hist[hist$XR == 1 & hist$Pn == 0 & hist$TB == 0 & hist$LC == 1, "XR"]) / 10000
-	xr[2,1,2,1] = length(hist[hist$XR == 1 & hist$Pn == 0 & hist$TB == 1 & hist$LC == 0, "XR"]) / 10000
-	xr[2,1,2,2] = length(hist[hist$XR == 1 & hist$Pn == 0 & hist$TB == 1 & hist$LC == 1, "XR"]) / 10000
-	xr[2,2,1,1] = length(hist[hist$XR == 1 & hist$Pn == 1 & hist$TB == 0 & hist$LC == 0, "XR"]) / 10000
-	xr[2,2,1,2] = length(hist[hist$XR == 1 & hist$Pn == 1 & hist$TB == 0 & hist$LC == 1, "XR"]) / 10000
-	xr[2,2,2,1] = length(hist[hist$XR == 1 & hist$Pn == 1 & hist$TB == 1 & hist$LC == 0, "XR"]) / 10000
-	xr[2,2,2,2] = length(hist[hist$XR == 1 & hist$Pn == 1 & hist$TB == 1 & hist$LC == 1, "XR"]) / 10000
+	xr[1,1,1,1] = length(hist[hist$XR == 0 & hist$Pn == 0 & hist$TB == 0 & hist$LC == 0, "XR"]) / length(hist[hist$Pn == 0 & hist$TB == 0 & hist$LC == 0, "XR"])
+	xr[1,1,1,2] = length(hist[hist$XR == 0 & hist$Pn == 0 & hist$TB == 0 & hist$LC == 1, "XR"]) / length(hist[hist$Pn == 0 & hist$TB == 0 & hist$LC == 1, "XR"])
+	xr[1,1,2,1] = length(hist[hist$XR == 0 & hist$Pn == 0 & hist$TB == 1 & hist$LC == 0, "XR"]) / length(hist[hist$Pn == 0 & hist$TB == 1 & hist$LC == 0, "XR"])
+	xr[1,1,2,2] = length(hist[hist$XR == 0 & hist$Pn == 0 & hist$TB == 1 & hist$LC == 1, "XR"]) / length(hist[hist$Pn == 0 & hist$TB == 1 & hist$LC == 1, "XR"])
+	xr[1,2,1,1] = length(hist[hist$XR == 0 & hist$Pn == 1 & hist$TB == 0 & hist$LC == 0, "XR"]) / length(hist[hist$Pn == 1 & hist$TB == 0 & hist$LC == 0, "XR"])
+	xr[1,2,1,2] = length(hist[hist$XR == 0 & hist$Pn == 1 & hist$TB == 0 & hist$LC == 1, "XR"]) / length(hist[hist$Pn == 1 & hist$TB == 0 & hist$LC == 1, "XR"])
+	xr[1,2,2,1] = length(hist[hist$XR == 0 & hist$Pn == 1 & hist$TB == 1 & hist$LC == 0, "XR"]) / length(hist[hist$Pn == 1 & hist$TB == 1 & hist$LC == 0, "XR"])
+	xr[1,2,2,2] = length(hist[hist$XR == 0 & hist$Pn == 1 & hist$TB == 1 & hist$LC == 1, "XR"]) / length(hist[hist$Pn == 1 & hist$TB == 1 & hist$LC == 1, "XR"])
+	xr[2,1,1,1] = length(hist[hist$XR == 1 & hist$Pn == 0 & hist$TB == 0 & hist$LC == 0, "XR"]) / length(hist[hist$Pn == 0 & hist$TB == 0 & hist$LC == 0, "XR"])
+	xr[2,1,1,2] = length(hist[hist$XR == 1 & hist$Pn == 0 & hist$TB == 0 & hist$LC == 1, "XR"]) / length(hist[hist$Pn == 0 & hist$TB == 0 & hist$LC == 1, "XR"])
+	xr[2,1,2,1] = length(hist[hist$XR == 1 & hist$Pn == 0 & hist$TB == 1 & hist$LC == 0, "XR"]) / length(hist[hist$Pn == 0 & hist$TB == 1 & hist$LC == 0, "XR"])
+	xr[2,1,2,2] = length(hist[hist$XR == 1 & hist$Pn == 0 & hist$TB == 1 & hist$LC == 1, "XR"]) / length(hist[hist$Pn == 0 & hist$TB == 1 & hist$LC == 1, "XR"])
+	xr[2,2,1,1] = length(hist[hist$XR == 1 & hist$Pn == 1 & hist$TB == 0 & hist$LC == 0, "XR"]) / length(hist[hist$Pn == 1 & hist$TB == 0 & hist$LC == 0, "XR"])
+	xr[2,2,1,2] = length(hist[hist$XR == 1 & hist$Pn == 1 & hist$TB == 0 & hist$LC == 1, "XR"]) / length(hist[hist$Pn == 1 & hist$TB == 0 & hist$LC == 1, "XR"])
+	xr[2,2,2,1] = length(hist[hist$XR == 1 & hist$Pn == 1 & hist$TB == 1 & hist$LC == 0, "XR"]) / length(hist[hist$Pn == 1 & hist$TB == 1 & hist$LC == 0, "XR"])
+	xr[2,2,2,2] = length(hist[hist$XR == 1 & hist$Pn == 1 & hist$TB == 1 & hist$LC == 1, "XR"]) / length(hist[hist$Pn == 1 & hist$TB == 1 & hist$LC == 1, "XR"])
 
 	# P(Dy | LC, Br)
 	# 
@@ -147,14 +147,14 @@ learn = function (hist) {
 	# 
 	# P(Dy | LC, Br) = dy[Dy +1, LC +1, Br +1]
 	dy = array(dim = c(2,2,2))
-	dy[1,1,1] = length(hist[hist$Dy == 0 & hist$LC == 0 & hist$Br == 0, "Dy"]) / 10000
-	dy[1,1,2] = length(hist[hist$Dy == 0 & hist$LC == 0 & hist$Br == 1, "Dy"]) / 10000
-	dy[1,2,1] = length(hist[hist$Dy == 0 & hist$LC == 1 & hist$Br == 0, "Dy"]) / 10000
-	dy[1,2,2] = length(hist[hist$Dy == 0 & hist$LC == 1 & hist$Br == 1, "Dy"]) / 10000
-	dy[2,1,1] = length(hist[hist$Dy == 1 & hist$LC == 0 & hist$Br == 0, "Dy"]) / 10000
-	dy[2,1,2] = length(hist[hist$Dy == 1 & hist$LC == 0 & hist$Br == 1, "Dy"]) / 10000
-	dy[2,2,1] = length(hist[hist$Dy == 1 & hist$LC == 1 & hist$Br == 0, "Dy"]) / 10000
-	dy[2,2,2] = length(hist[hist$Dy == 1 & hist$LC == 1 & hist$Br == 1, "Dy"]) / 10000
+	dy[1,1,1] = length(hist[hist$Dy == 0 & hist$LC == 0 & hist$Br == 0, "Dy"]) / length(hist[hist$LC == 0 & hist$Br == 0, "Dy"])
+	dy[1,1,2] = length(hist[hist$Dy == 0 & hist$LC == 0 & hist$Br == 1, "Dy"]) / length(hist[hist$LC == 0 & hist$Br == 1, "Dy"])
+	dy[1,2,1] = length(hist[hist$Dy == 0 & hist$LC == 1 & hist$Br == 0, "Dy"]) / length(hist[hist$LC == 1 & hist$Br == 0, "Dy"])
+	dy[1,2,2] = length(hist[hist$Dy == 0 & hist$LC == 1 & hist$Br == 1, "Dy"]) / length(hist[hist$LC == 1 & hist$Br == 1, "Dy"])
+	dy[2,1,1] = length(hist[hist$Dy == 1 & hist$LC == 0 & hist$Br == 0, "Dy"]) / length(hist[hist$LC == 0 & hist$Br == 0, "Dy"])
+	dy[2,1,2] = length(hist[hist$Dy == 1 & hist$LC == 0 & hist$Br == 1, "Dy"]) / length(hist[hist$LC == 0 & hist$Br == 1, "Dy"])
+	dy[2,2,1] = length(hist[hist$Dy == 1 & hist$LC == 1 & hist$Br == 0, "Dy"]) / length(hist[hist$LC == 1 & hist$Br == 0, "Dy"])
+	dy[2,2,2] = length(hist[hist$Dy == 1 & hist$LC == 1 & hist$Br == 1, "Dy"]) / length(hist[hist$LC == 1 & hist$Br == 1, "Dy"])
 
 	network = list(
 		Pn = pn,
@@ -182,100 +182,121 @@ diagnose = function (network, cases) {
 	final = c()
 
 	for (i in 1:nrow(cases)) {
-		print("======RUN========")
-		print(i)
+	# for (i in 1:1) {
+		# print("======RUN========")
+		# print(i)
 		samples = data.frame()
 		currentCase = cases[i,]
 
+		# print("current case before assin")
+		# print(currentCase)
+
 		#### ASSIGNED VALUES
 		#### assign random values to Pn, TB, LC, Br
-		currentCase$Pn = randomDiscreteValues[currentIndexDisc]
+		assignedCase = currentCase
+		assignedCase$Pn = randomDiscreteValues[currentIndexDisc]
 		currentIndexDisc = currentIndexDisc + 1
-		currentCase$TB = randomDiscreteValues[currentIndexDisc]
+		assignedCase$TB = randomDiscreteValues[currentIndexDisc]
 		currentIndexDisc = currentIndexDisc + 1
-		currentCase$LC = randomDiscreteValues[currentIndexDisc]
+		assignedCase$LC = randomDiscreteValues[currentIndexDisc]
 		currentIndexDisc = currentIndexDisc + 1
-		currentCase$Br = randomDiscreteValues[currentIndexDisc]
+		assignedCase$Br = randomDiscreteValues[currentIndexDisc]
 		currentIndexDisc = currentIndexDisc + 1
 
+		# print("current case after assin")
+		# print(assignedCase)
+
+		# for(j in 1:1) {
 		for(j in 1:1500) {
 			#### CALCULATE p_old
-			#### = P(Pn) * P(VTB) * P(Sm) * P(TB | VTB) * P(LC | Sm) * P(Br | Sm) * P(Te | Pn) * P(XR | Pn, TB, LC) * P(Dy | LC, Br)
-			p_old = calculateBayesianProbability(network, currentCase)
+			p_old = calculateBayesianProbability(network, assignedCase)
+
+			# print("p_old")
+			# print(p_old)
+
+			proposedCase = assignedCase
 
 			#### PROPOSED VALUE FOR Pn
-			currentCase$Pn = 1-currentCase$Pn
+			proposedCase$Pn = 1-proposedCase$Pn
 
 			#### CALCULATE p_new
-			#### = P(Pn) * P(VTB) * P(Sm) * P(TB | VTB) * P(LC | Sm) * P(Br | Sm) * P(Te | Pn) * P(XR | Pn, TB, LC) * P(Dy | LC, Br)
-			p_new = calculateBayesianProbability(network, currentCase)
+			p_new = calculateBayesianProbability(network, proposedCase)
 
 			if (p_new > p_old) {
-				# accept the new value for currentCase$Pn
+				# accept the new value for proposedCase$Pn
+				p_old = p_new
 			} else {
 				newValueProb = p_new / p_old
 				randomProb = randomProbabilities[currentIndexProb]
 				currentIndexProb = currentIndexProb + 1
 				if (randomProb < newValueProb) {
-					# accept the new value for currentCase$Pn
+					# accept the new value for proposedCase$Pn
+					p_old = p_new
 				} else {
-					currentCase$Pn = 1 - currentCase$Pn
+					proposedCase$Pn = 1 - proposedCase$Pn
 				}
 			}
 
 			#### PROPOSED VALUE FOR TB
-			currentCase$TB = 1-currentCase$TB
-			p_new = calculateBayesianProbability(network, currentCase)
+			proposedCase$TB = 1-proposedCase$TB
+			p_new = calculateBayesianProbability(network, proposedCase)
 
 			if (p_new > p_old) {
-				# accept the new value for currentCase$TB
+				# accept the new value for proposedCase$TB
+				p_old = p_new
 			} else {
 				newValueProb = p_new / p_old
 				randomProb = randomProbabilities[currentIndexProb]
 				currentIndexProb = currentIndexProb + 1
 				if (randomProb < newValueProb) {
-					# accept the new value for currentCase$TB
+					# accept the new value for proposedCase$TB
+					p_old = p_new
 				} else {
-					currentCase$TB = 1 - currentCase$TB
+					proposedCase$TB = 1 - proposedCase$TB
 				}
 			}
 
 			#### PROPOSED VALUE FOR LC
-			currentCase$LC = 1-currentCase$LC
-			p_new = calculateBayesianProbability(network, currentCase)
+			proposedCase$LC = 1-proposedCase$LC
+			p_new = calculateBayesianProbability(network, proposedCase)
 
 			if (p_new > p_old) {
-				# accept the new value for currentCase$LC
+				# accept the new value for proposedCase$LC
+				p_old = p_new
 			} else {
 				newValueProb = p_new / p_old
 				randomProb = randomProbabilities[currentIndexProb]
 				currentIndexProb = currentIndexProb + 1
 				if (randomProb < newValueProb) {
-					# accept the new value for currentCase$LC
+					# accept the new value for proposedCase$LC
+					p_old = p_new
 				} else {
-					currentCase$LC = 1 - currentCase$LC
+					proposedCase$LC = 1 - proposedCase$LC
 				}
 			}
 
 			#### PROPOSED VALUE FOR Br
-			currentCase$Br = 1-currentCase$Br
+			proposedCase$Br = 1-proposedCase$Br
 
-			p_new = calculateBayesianProbability(network, currentCase)
+			p_new = calculateBayesianProbability(network, proposedCase)
 
 			if (p_new > p_old) {
-				# accept the new value for currentCase$Br
+				# accept the new value for proposedCase$Br
+				p_old = p_new
 			} else {
 				newValueProb = p_new / p_old
 				randomProb = randomProbabilities[currentIndexProb]
 				currentIndexProb = currentIndexProb + 1
 				if (randomProb < newValueProb) {
-					# accept the new value for currentCase$Br
+					# accept the new value for proposedCase$Br
+					p_old = p_new
 				} else {
-					currentCase$Br = 1 - currentCase$Br
+					proposedCase$Br = 1 - proposedCase$Br
 				}
 			}
-
-			samples <- rbind(samples, currentCase)
+			
+			assignedCase = proposedCase
+			samples <- rbind(samples, proposedCase)
 		}
 
 		samples = samples[-c(1:500), ]
@@ -309,4 +330,6 @@ calculateBayesianProbability = function(network, currentCase) {
 			dnorm(currentCase$Te, network$Te[currentCase$Pn +1, 1], network$Te[currentCase$Pn +1, 2]) * # P(Te | Pn)
 			network$XR[currentCase$XR +1, currentCase$Pn +1, currentCase$TB +1, currentCase$LC +1] * # P(XR | Pn, TB, LC)
 			network$Dy[currentCase$Dy +1, currentCase$LC +1, currentCase$Br +1] # P(Dy | LC, Br)
+		
+		return (p)
 }
