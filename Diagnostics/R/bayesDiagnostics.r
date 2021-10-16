@@ -95,7 +95,7 @@ learn = function (hist) {
 	#  0 | [1,1]    | [1,2]
 	#  1 | [2,1]    | [2,2]
 	#
-	# P(Te | Pn) = dnorm(VAL, te[Pn +1, 1], te[Pn +1, 2])
+	# P(Te | Pn) = dnorm(Te, te[Pn +1, 1], te[Pn +1, 2])
 	te = matrix(nrow = 2, ncol = 2)
 	te[1,1] = mean(hist[hist$Pn == 0, "Te"])
 	te[1,2] = sd(hist[hist$Pn == 0, "Te"])
@@ -172,8 +172,6 @@ learn = function (hist) {
 }
 
 diagnose = function (network, cases) {
-	# print(network)
-	# print(cases)
 	randomDiscreteValues = round(runif(10000000, 0, 1))
 	currentIndexDisc = 1
 	randomProbabilities = runif(10000000, 0, 1)
@@ -182,14 +180,8 @@ diagnose = function (network, cases) {
 	final = c()
 
 	for (i in 1:nrow(cases)) {
-	# for (i in 1:1) {
-		# print("======RUN========")
-		# print(i)
 		samples = data.frame()
 		currentCase = cases[i,]
-
-		# print("current case before assin")
-		# print(currentCase)
 
 		#### ASSIGNED VALUES
 		#### assign random values to Pn, TB, LC, Br
@@ -203,16 +195,9 @@ diagnose = function (network, cases) {
 		assignedCase$Br = randomDiscreteValues[currentIndexDisc]
 		currentIndexDisc = currentIndexDisc + 1
 
-		# print("current case after assin")
-		# print(assignedCase)
-
-		# for(j in 1:1) {
-		for(j in 1:1500) {
+		for(j in 1:1000) {
 			#### CALCULATE p_old
 			p_old = calculateBayesianProbability(network, assignedCase)
-
-			# print("p_old")
-			# print(p_old)
 
 			proposedCase = assignedCase
 
@@ -299,21 +284,11 @@ diagnose = function (network, cases) {
 			samples <- rbind(samples, proposedCase)
 		}
 
-		samples = samples[-c(1:500), ]
-		# print("samples for")
-		# print("Pn")
-		# print(mean(samples$Pn))
-		# print("TB")
-		# print(mean(samples$TB))
-		# print("LC")
-		# print(mean(samples$LC))
-		# print("Br")
-		# print(mean(samples$Br))
-
+		samples = samples[-c(1:100), ]
 		final = append(final, c(mean(samples$Pn), mean(samples$TB), mean(samples$LC), mean(samples$Br)))
 	}
-	final = matrix(final, nrow = 10, ncol = 4)
-	print(final)
+	final = matrix(final, nrow = 10, ncol = 4, byrow = TRUE)
+	# print(final)
 	return (final)
 }
 
